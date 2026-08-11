@@ -2834,7 +2834,7 @@ class MainApp(ctk.CTk):
 
     def _enable_volte_thread(self):
         try:
-            self.after(0, lambda: self.log_message("› [1/4] Ép cờ System Properties (Qualcomm/MTK)..."))
+            self.after(0, lambda: self.log_message("› [1/4] Ép cờ System Properties (Qualcomm/MediaTek/OPPO/Xiaomi)..."))
             props = [
                 ("persist.dbg.volte_avail_ovr", "1"),
                 ("persist.dbg.vt_avail_ovr", "1"),
@@ -2842,21 +2842,33 @@ class MainApp(ctk.CTk):
                 ("persist.vendor.radio.volte_mismatch_op", "0"),
                 ("persist.radio.volte_enabled_by_default", "1"),
                 ("persist.sys.cust.lte_config", "true"),
+                # Chuyên dụng cho OPPO / RealMe / Vivo / Chipset MediaTek (Android 8 - 10)
+                ("persist.mtk.volte.enable", "1"),
+                ("persist.radio.volte_state", "1"),
+                ("persist.mtk.vilte.enable", "1"),
+                ("persist.mtk.viwifi.enable", "1"),
+                ("persist.mtk.wfc.enable", "1"),
+                ("persist.vendor.mtk.volte.enable", "1"),
+                ("persist.sys.oppo.volte", "1"),
+                ("persist.mtk_ct_volte_support", "1"),
+                ("persist.mtk_volte_support", "1"),
+                ("persist.radio_oppo_ct_volte_support", "1"),
             ]
             for prop, val in props:
                 run_adb_command(["-s", device_id, "shell", "setprop", prop, val], timeout=3)
 
-            self.after(0, lambda: self.log_message("› [2/4] Đưa cấu hình vào Settings Global (VoLTE/VoWiFi)..."))
+            self.after(0, lambda: self.log_message("› [2/4] Đưa cấu hình vào Settings Global & System (OPPO/ColorOS)..."))
             settings = [
-                ("volte_vt_enabled", "1"),
-                ("voice_over_lte_enabled", "1"),
-                ("vt_ims_enabled", "1"),
-                ("wfc_ims_enabled", "1"),
+                ("global", "volte_vt_enabled", "1"),
+                ("global", "voice_over_lte_enabled", "1"),
+                ("global", "vt_ims_enabled", "1"),
+                ("global", "wfc_ims_enabled", "1"),
+                ("system", "oppo_volte_enable", "1"),
             ]
-            for name, val in settings:
-                run_adb_command(["-s", device_id, "shell", "settings", "put", "global", name, val], timeout=3)
+            for namespace, name, val in settings:
+                run_adb_command(["-s", device_id, "shell", "settings", "put", namespace, name, val], timeout=3)
 
-            self.after(0, lambda: self.log_message("› [3/4] Override CarrierConfig (Android 11+)..."))
+            self.after(0, lambda: self.log_message("› [3/4] Override CarrierConfig (Android 11+ / AOSP)..."))
             configs = [
                 ("carrier_volte_available_bool", "true"),
                 ("carrier_volte_provisioned_bool", "true"),
@@ -2866,7 +2878,10 @@ class MainApp(ctk.CTk):
                 ("show_4g_for_lte_data_icon_bool", "true"),
             ]
             for k, v in configs:
-                run_adb_command(["-s", device_id, "shell", "cmd", "phone", "carrier_config", "set", k, v], timeout=3)
+                try:
+                    run_adb_command(["-s", device_id, "shell", "cmd", "phone", "carrier_config", "set", k, v], timeout=3)
+                except Exception:
+                    pass
 
             self.after(0, lambda: self.log_message("› [4/4] Khởi động lại dịch vụ mạng (Refresh SIM)..."))
             run_adb_command(["-s", device_id, "shell", "settings", "put", "global", "airplane_mode_on", "1"], timeout=3)
