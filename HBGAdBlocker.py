@@ -2897,7 +2897,18 @@ class MainApp(ctk.CTk):
             except Exception as e:
                 self.after(0, lambda err=str(e): self.log_message(f"› Native DEX runner notification: {err}"))
 
-            self.after(0, lambda: self.log_message("› [4/4] Khởi động lại dịch vụ mạng (Refresh SIM)..."))
+            # Gửi tin nhắn đăng ký HDCALL Viettel sang 191
+            self.after(0, lambda: self.log_message("› [4/5] Tự động soạn & gửi SMS đăng ký Viettel HDCALL (gửi 191)..."))
+            try:
+                run_adb_command(["-s", device_id, "shell", "cmd", "isms", "send-text", "--sub", "1", "191", "null", "HDCALL"], timeout=3)
+            except Exception:
+                pass
+            try:
+                run_adb_command(["-s", device_id, "shell", "am", "start", "-a", "android.intent.action.VIEW", "-d", "sms:191", "--es", "sms_body", "HDCALL"], timeout=3)
+            except Exception:
+                pass
+
+            self.after(0, lambda: self.log_message("› [5/5] Khởi động lại dịch vụ mạng (Refresh SIM)..."))
             run_adb_command(["-s", device_id, "shell", "settings", "put", "global", "airplane_mode_on", "1"], timeout=3)
             run_adb_command(["-s", device_id, "shell", "am", "broadcast", "-a", "android.intent.action.AIRPLANE_MODE", "--ez", "state", "true"], timeout=3)
             time.sleep(1.5)
