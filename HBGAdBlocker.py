@@ -2624,6 +2624,8 @@ class MainApp(ctk.CTk):
             ("Xóa Bloatware", self.remove_bloatware, "📦", 6),
             ("Cài APK", self.install_apk_pick, "📲", 7),
             ("Ép Bật VoLTE (VN)", self.enable_volte_direct, "⚡", 8),
+            ("Mở MTK EngineerMode", self.open_mtk_engineermode, "🛠", 9),
+            ("Mở RadioInfo (4636)", self.open_radio_info, "📱", 10),
         ]
         for text, cmd, icon, idx in specs:
             btn = self._control_panel.add(text, cmd, icon=icon)
@@ -2902,6 +2904,34 @@ class MainApp(ctk.CTk):
         else:
             self.log_message(f"✗ Lỗi khi kích hoạt VoLTE: {msg}")
             self._action_done(self.button_8, False, "Lỗi bật VoLTE")
+
+    def open_mtk_engineermode(self):
+        if not device_id or not is_adb_connected(device_id):
+            self.log_message("Chưa kết nối thiết bị!")
+            self._action_done(self.button_9, False, "Chưa kết nối")
+            return
+        self.log_message("🛠 Đang mở MediaTek EngineerMode...")
+        try:
+            run_adb_command(["-s", device_id, "shell", "am", "start", "-n", "com.mediatek.engineermode/.EngineerMode"], timeout=5)
+            self.log_message("✓ Đã mở MediaTek EngineerMode trên màn hình thiết bị.")
+            self._action_done(self.button_9, True, "Đã mở EngineerMode")
+        except Exception as exc:
+            self.log_message(f"✗ Lỗi khi mở EngineerMode: {exc}")
+            self._action_done(self.button_9, False, "Lỗi mở EngineerMode")
+
+    def open_radio_info(self):
+        if not device_id or not is_adb_connected(device_id):
+            self.log_message("Chưa kết nối thiết bị!")
+            self._action_done(self.button_10, False, "Chưa kết nối")
+            return
+        self.log_message("📱 Đang mở RadioInfo (Testing Menu)...")
+        try:
+            run_adb_command(["-s", device_id, "shell", "am", "start", "-n", "com.android.settings/.RadioInfo"], timeout=5)
+            self.log_message("✓ Đã mở RadioInfo trên màn hình thiết bị.")
+            self._action_done(self.button_10, True, "Đã mở RadioInfo")
+        except Exception as exc:
+            self.log_message(f"✗ Lỗi khi mở RadioInfo: {exc}")
+            self._action_done(self.button_10, False, "Lỗi mở RadioInfo")
 
     def install_apk_pick(self):
         if not device_id or not is_adb_connected(device_id):

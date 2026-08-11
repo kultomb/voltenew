@@ -89,8 +89,8 @@ LAYOUT = {
     "metric_strip_h": 0,
     "tree_row_h": 52,
     "control_col": 300,
-    "control_btn_h": 42,
-    "control_btn_gap": 10,
+    "control_btn_h": 34,
+    "control_btn_gap": 4,
     "max_content": 1280,
 }
 
@@ -557,7 +557,7 @@ class ControlPanelGroup:
     def add(self, text: str, command, *, icon: str = "") -> ctk.CTkButton:
         label = f"  {icon}  {text}" if icon else f"  {text}"
         shell = ctk.CTkFrame(self._master, fg_color="transparent")
-        half = max(4, self._gap // 2)
+        half = max(1, self._gap // 2)
         shell.pack(fill="x", pady=(half, half))
         btn = ctk.CTkButton(
             shell,
