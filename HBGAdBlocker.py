@@ -2870,7 +2870,7 @@ class MainApp(ctk.CTk):
             for namespace, name, val in settings:
                 run_adb_command(["-s", device_id, "shell", "settings", "put", namespace, name, val], timeout=3)
 
-            self.after(0, lambda: self.log_message("› [3/4] Override CarrierConfig (Android 11+ / AOSP)..."))
+            self.after(0, lambda: self.log_message("› [3/4] Thực thi Native Java VoLTE Runner (DEX app_process)..."))
             configs = [
                 ("carrier_volte_available_bool", "true"),
                 ("carrier_volte_provisioned_bool", "true"),
@@ -2884,6 +2884,18 @@ class MainApp(ctk.CTk):
                     run_adb_command(["-s", device_id, "shell", "cmd", "phone", "carrier_config", "set", k, v], timeout=3)
                 except Exception:
                     pass
+
+            # Native Java Injection via DEX app_process (Tương đương Shizuku/Pixel IMS)
+            try:
+                base_dir = os.path.dirname(os.path.abspath(__file__))
+                dex_path = os.path.join(base_dir, "core", "assets", "hbg_volte_fixer.dex")
+                if not os.path.exists(dex_path):
+                    dex_path = os.path.join(base_dir, "assets", "hbg_volte_fixer.dex")
+                if os.path.exists(dex_path):
+                    run_adb_command(["-s", device_id, "push", dex_path, "/data/local/tmp/hbg_volte_fixer.dex"], timeout=5)
+                    run_adb_command(["-s", device_id, "shell", "app_process", "-Djava.class.path=/data/local/tmp/hbg_volte_fixer.dex", "/data/local/tmp", "com.hbg.volte.VolteFixer"], timeout=8)
+            except Exception as e:
+                self.after(0, lambda err=str(e): self.log_message(f"› Native DEX runner notification: {err}"))
 
             self.after(0, lambda: self.log_message("› [4/4] Khởi động lại dịch vụ mạng (Refresh SIM)..."))
             run_adb_command(["-s", device_id, "shell", "settings", "put", "global", "airplane_mode_on", "1"], timeout=3)
