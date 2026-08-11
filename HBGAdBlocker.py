@@ -2623,6 +2623,7 @@ class MainApp(ctk.CTk):
             ("Xóa Launcher", self.remove_launcher, "🏠", 5),
             ("Xóa Bloatware", self.remove_bloatware, "📦", 6),
             ("Cài APK", self.install_apk_pick, "📲", 7),
+            ("Ép Bật VoLTE (VN)", self.enable_volte_direct, "⚡", 8),
         ]
         for text, cmd, icon, idx in specs:
             btn = self._control_panel.add(text, cmd, icon=icon)
@@ -2821,6 +2822,71 @@ class MainApp(ctk.CTk):
         except Exception as exc:
             self.log_message(f"Lỗi DNS: {exc}")
             self._action_done(self.button_1, False, "Không đặt được DNS")
+
+    def enable_volte_direct(self):
+        if not device_id or not is_adb_connected(device_id):
+            self.log_message("Chưa kết nối thiết bị!")
+            self._action_done(self.button_8, False, "Chưa kết nối thiết bị")
+            return
+        self._action_running(self.button_8, "Đang ép bật VoLTE…", progress=0.1)
+        self.log_message("⚡ Đang thực hiện ép bật VoLTE (Viettel/Vina/Mobi) qua ADB...")
+        self.app_executor.submit(self._enable_volte_thread)
+
+    def _enable_volte_thread(self):
+        try:
+            self.after(0, lambda: self.log_message("› [1/4] Ép cờ System Properties (Qualcomm/MTK)..."))
+            props = [
+                ("persist.dbg.volte_avail_ovr", "1"),
+                ("persist.dbg.vt_avail_ovr", "1"),
+                ("persist.dbg.wfc_avail_ovr", "1"),
+                ("persist.vendor.radio.volte_mismatch_op", "0"),
+                ("persist.radio.volte_enabled_by_default", "1"),
+                ("persist.sys.cust.lte_config", "true"),
+            ]
+            for prop, val in props:
+                run_adb_command(["-s", device_id, "shell", "setprop", prop, val], timeout=3)
+
+            self.after(0, lambda: self.log_message("› [2/4] Đưa cấu hình vào Settings Global (VoLTE/VoWiFi)..."))
+            settings = [
+                ("volte_vt_enabled", "1"),
+                ("voice_over_lte_enabled", "1"),
+                ("vt_ims_enabled", "1"),
+                ("wfc_ims_enabled", "1"),
+            ]
+            for name, val in settings:
+                run_adb_command(["-s", device_id, "shell", "settings", "put", "global", name, val], timeout=3)
+
+            self.after(0, lambda: self.log_message("› [3/4] Override CarrierConfig (Android 11+)..."))
+            configs = [
+                ("carrier_volte_available_bool", "true"),
+                ("carrier_volte_provisioned_bool", "true"),
+                ("hide_enhanced_4g_lte_bool", "false"),
+                ("editable_enhanced_4g_lte_bool", "true"),
+                ("carrier_supports_ss_over_ut_bool", "true"),
+                ("show_4g_for_lte_data_icon_bool", "true"),
+            ]
+            for k, v in configs:
+                run_adb_command(["-s", device_id, "shell", "cmd", "phone", "carrier_config", "set", k, v], timeout=3)
+
+            self.after(0, lambda: self.log_message("› [4/4] Khởi động lại dịch vụ mạng (Refresh SIM)..."))
+            run_adb_command(["-s", device_id, "shell", "settings", "put", "global", "airplane_mode_on", "1"], timeout=3)
+            run_adb_command(["-s", device_id, "shell", "am", "broadcast", "-a", "android.intent.action.AIRPLANE_MODE", "--ez", "state", "true"], timeout=3)
+            time.sleep(1.5)
+            run_adb_command(["-s", device_id, "shell", "settings", "put", "global", "airplane_mode_on", "0"], timeout=3)
+            run_adb_command(["-s", device_id, "shell", "am", "broadcast", "-a", "android.intent.action.AIRPLANE_MODE", "--ez", "state", "false"], timeout=3)
+
+            self.after(0, lambda: self._after_enable_volte_ui(True, "Thành công"))
+        except Exception as exc:
+            self.after(0, lambda e=str(exc): self._after_enable_volte_ui(False, e))
+
+    def _after_enable_volte_ui(self, ok: bool, msg: str):
+        if ok:
+            self.log_message("✓ Đã gửi toàn bộ chuỗi lệnh kích hoạt VoLTE thành công!")
+            self.log_message("› Vui lòng kiểm tra thanh trạng thái xem biểu tượng VoLTE/HD đã xuất hiện chưa.")
+            self._action_done(self.button_8, True, "Bật VoLTE thành công")
+        else:
+            self.log_message(f"✗ Lỗi khi kích hoạt VoLTE: {msg}")
+            self._action_done(self.button_8, False, "Lỗi bật VoLTE")
 
     def install_apk_pick(self):
         if not device_id or not is_adb_connected(device_id):
