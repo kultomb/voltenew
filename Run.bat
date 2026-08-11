@@ -1,9 +1,9 @@
 @echo off
 chcp 65001 > NUL
-title HBGAdBlocker - Cong Cu AdBlock & VoLTE Fixer
+title HBGAdBlocker - Cong Cu AdBlock ^& VoLTE Fixer
 
 echo ========================================================
-echo   DANG KHOI CHAY HBGADBLOCKER (ADBLOCK & VOLTE FIXER)...
+echo   DANG KHOI CHAY HBGADBLOCKER (ADBLOCK ^& VOLTE FIXER)...
 echo ========================================================
 
 python HBGAdBlocker.py
