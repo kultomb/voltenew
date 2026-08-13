@@ -88,7 +88,7 @@ LAYOUT = {
     "toolbar_h": 36,
     "metric_strip_h": 0,
     "tree_row_h": 52,
-    "control_col": 300,
+    "control_col": 460,
     "control_btn_h": 34,
     "control_btn_gap": 4,
     "max_content": 1280,
@@ -546,19 +546,30 @@ class UI:
 class ControlPanelGroup:
     """Nút điều khiển — hover / chọn + thanh tiến trình & trạng thái từng thao tác."""
 
-    def __init__(self, master, *, height: int | None = None, gap: int | None = None):
+    def __init__(self, master, *, height: int | None = None, gap: int | None = None, columns: int = 1):
         self._master = master
         self._height = height if height is not None else LAYOUT["control_btn_h"]
         self._gap = gap if gap is not None else LAYOUT["control_btn_gap"]
+        self._columns = columns
         self._items: list[dict] = []
         self._selected: ctk.CTkButton | None = None
         self._enabled = True
+
+        if self._columns > 1:
+            for col_idx in range(self._columns):
+                self._master.grid_columnconfigure(col_idx, weight=1)
 
     def add(self, text: str, command, *, icon: str = "") -> ctk.CTkButton:
         label = f"  {icon}  {text}" if icon else f"  {text}"
         shell = ctk.CTkFrame(self._master, fg_color="transparent")
         half = max(1, self._gap // 2)
-        shell.pack(fill="x", pady=(half, half))
+        if self._columns > 1:
+            idx = len(self._items)
+            r = idx // self._columns
+            c = idx % self._columns
+            shell.grid(row=r, column=c, sticky="ew", padx=half, pady=half)
+        else:
+            shell.pack(fill="x", pady=(half, half))
         btn = ctk.CTkButton(
             shell,
             text=label,

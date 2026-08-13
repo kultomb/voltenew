@@ -2612,8 +2612,12 @@ class MainApp(ctk.CTk):
         ctrl_card = UI.card(mid, padding=block_pad)
         ctrl_card.grid(row=0, column=0, sticky="nsew", padx=(0, SPACE["3"]))
         ctrl = UI.card_inner(ctrl_card)
-        UI.label(ctrl, "Điều khiển", variant="heading").pack(anchor="w", pady=(0, SPACE["3"]))
-        self._control_panel = ControlPanelGroup(ctrl)
+        UI.label(ctrl, "Điều khiển hệ thống", variant="heading").pack(anchor="w", pady=(0, SPACE["3"]))
+
+        btn_container = ctk.CTkFrame(ctrl, fg_color="transparent")
+        btn_container.pack(fill="both", expand=True)
+
+        self._control_panel = ControlPanelGroup(btn_container, columns=2)
         specs = [
             ("Bật giám sát", self.toggle_monitor, "🛡", 0),
             ("Cài AdGuard DNS", self.set_adguard_dns, "🌐", 1),
@@ -2624,6 +2628,7 @@ class MainApp(ctk.CTk):
             ("Xóa Bloatware", self.remove_bloatware, "📦", 6),
             ("Cài APK", self.install_apk_pick, "📲", 7),
             ("Ép Bật VoLTE (VN)", self.enable_volte_direct, "⚡", 8),
+            ("Đăng ký HDCALL (191)", self.send_hdcall_sms, "📩", 11),
             ("Mở MTK EngineerMode", self.open_mtk_engineermode, "🛠", 9),
             ("Mở RadioInfo (4636)", self.open_radio_info, "📱", 10),
         ]
@@ -2897,18 +2902,7 @@ class MainApp(ctk.CTk):
             except Exception as e:
                 self.after(0, lambda err=str(e): self.log_message(f"› Native DEX runner notification: {err}"))
 
-            # Gửi tin nhắn đăng ký HDCALL Viettel sang 191
-            self.after(0, lambda: self.log_message("› [4/5] Tự động soạn & gửi SMS đăng ký Viettel HDCALL (gửi 191)..."))
-            try:
-                run_adb_command(["-s", device_id, "shell", "cmd", "isms", "send-text", "--sub", "1", "191", "null", "HDCALL"], timeout=3)
-            except Exception:
-                pass
-            try:
-                run_adb_command(["-s", device_id, "shell", "am", "start", "-a", "android.intent.action.VIEW", "-d", "sms:191", "--es", "sms_body", "HDCALL"], timeout=3)
-            except Exception:
-                pass
-
-            self.after(0, lambda: self.log_message("› [5/5] Khởi động lại dịch vụ mạng (Refresh SIM)..."))
+            self.after(0, lambda: self.log_message("› [4/4] Khởi động lại dịch vụ mạng (Refresh SIM)..."))
             run_adb_command(["-s", device_id, "shell", "settings", "put", "global", "airplane_mode_on", "1"], timeout=3)
             run_adb_command(["-s", device_id, "shell", "am", "broadcast", "-a", "android.intent.action.AIRPLANE_MODE", "--ez", "state", "true"], timeout=3)
             time.sleep(1.5)
@@ -2927,6 +2921,39 @@ class MainApp(ctk.CTk):
         else:
             self.log_message(f"✗ Lỗi khi kích hoạt VoLTE: {msg}")
             self._action_done(self.button_8, False, "Lỗi bật VoLTE")
+
+    def send_hdcall_sms(self):
+        if not device_id or not is_adb_connected(device_id):
+            self.log_message("Chưa kết nối thiết bị!")
+            self._action_done(self.button_11, False, "Chưa kết nối thiết bị")
+            return
+        self._action_running(self.button_11, "Đang gửi HDCALL…", progress=0.2)
+        self.log_message("📩 Đang thực hiện gửi SMS đăng ký HDCALL (gửi 191) qua ADB...")
+        self.app_executor.submit(self._send_hdcall_sms_thread)
+
+    def _send_hdcall_sms_thread(self):
+        try:
+            self.after(0, lambda: self.log_message("› Tự động soạn & gửi SMS đăng ký Viettel HDCALL (gửi 191)..."))
+            try:
+                run_adb_command(["-s", device_id, "shell", "cmd", "isms", "send-text", "--sub", "1", "191", "null", "HDCALL"], timeout=3)
+            except Exception:
+                pass
+            try:
+                run_adb_command(["-s", device_id, "shell", "am", "start", "-a", "android.intent.action.VIEW", "-d", "sms:191", "--es", "sms_body", "HDCALL"], timeout=3)
+            except Exception:
+                pass
+
+            self.after(0, lambda: self._after_send_hdcall_ui(True, "Thành công"))
+        except Exception as exc:
+            self.after(0, lambda e=str(exc): self._after_send_hdcall_ui(False, e))
+
+    def _after_send_hdcall_ui(self, ok: bool, msg: str):
+        if ok:
+            self.log_message("✓ Đã gửi tin nhắn / mở trình soạn tin nhắn HDCALL (191) thành công!")
+            self._action_done(self.button_11, True, "Đã gửi HDCALL (191)")
+        else:
+            self.log_message(f"✗ Lỗi khi gửi HDCALL: {msg}")
+            self._action_done(self.button_11, False, "Lỗi gửi HDCALL")
 
     def open_mtk_engineermode(self):
         if not device_id or not is_adb_connected(device_id):
