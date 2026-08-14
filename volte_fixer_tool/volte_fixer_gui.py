@@ -24,15 +24,14 @@ from volte_engine import VoLTEEngine
 # ---------------------------------------------------------------------------
 # Font System & Color Palette (Enterprise SaaS Dark Design System)
 # ---------------------------------------------------------------------------
-# Segoe UI is guaranteed to render full Vietnamese Unicode accented characters on Windows
 FONT_FAMILY = ("Segoe UI", "Montserrat", "Arial", "sans-serif")
-FONT_TITLE = (FONT_FAMILY[0], 18, "bold")
-FONT_SUBTITLE = (FONT_FAMILY[0], 10)
-FONT_CARD_TITLE = (FONT_FAMILY[0], 11, "bold")
-FONT_LABEL = (FONT_FAMILY[0], 10)
-FONT_LABEL_BOLD = (FONT_FAMILY[0], 10, "bold")
-FONT_BTN_MAIN = (FONT_FAMILY[0], 12, "bold")
-FONT_BTN_GRID = (FONT_FAMILY[0], 10, "bold")
+FONT_TITLE = (FONT_FAMILY[0], 20, "bold")
+FONT_SUBTITLE = (FONT_FAMILY[0], 12)
+FONT_CARD_TITLE = (FONT_FAMILY[0], 12, "bold")
+FONT_LABEL = (FONT_FAMILY[0], 12)
+FONT_LABEL_BOLD = (FONT_FAMILY[0], 12, "bold")
+FONT_BTN_MAIN = (FONT_FAMILY[0], 13, "bold")
+FONT_BTN_GRID = (FONT_FAMILY[0], 11, "bold")
 
 THEME = {
     "bg_app": "#0d1117",
@@ -41,9 +40,9 @@ THEME = {
     "bg_inset": "#0d1117",
     "border": "#30363d",
     "border_highlight": "#38bdf8",
-    "text_primary": "#f0f6fc",
-    "text_secondary": "#8b949e",
-    "text_muted": "#6e7681",
+    "text_primary": "#ffffff",
+    "text_secondary": "#cbd5e1",
+    "text_muted": "#94a3b8",
     "accent_blue": "#38bdf8",
     "accent_indigo": "#6366f1",
     "accent_cyan": "#38bdf8",
@@ -237,7 +236,7 @@ class VoLTEFixerApp(ctk.CTk):
         row = ctk.CTkFrame(self.info_frame, fg_color="transparent")
         row.pack(fill="x", padx=12, pady=4)
 
-        ctk.CTkLabel(row, text=title, font=FONT_LABEL, text_color=THEME["text_muted"], width=130, anchor="w").pack(side="left")
+        ctk.CTkLabel(row, text=title, font=FONT_LABEL, text_color=THEME["text_muted"], width=150, anchor="w").pack(side="left")
         val_lbl = ctk.CTkLabel(row, text=default_val, font=FONT_LABEL_BOLD, text_color=THEME["text_primary"], anchor="w")
         val_lbl.pack(side="left", fill="x", expand=True)
         return val_lbl
