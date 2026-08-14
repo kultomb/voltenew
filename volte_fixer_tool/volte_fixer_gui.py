@@ -22,35 +22,27 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from volte_engine import VoLTEEngine
 
 # ---------------------------------------------------------------------------
-# Color Palette & Styling Tokens (SaaS Dark Cyber Theme)
+# Font System & Color Palette (Enterprise SaaS Dark Montserrat Theme)
 # ---------------------------------------------------------------------------
+FONT_FAMILY = "Montserrat"
+
 THEME = {
-    "bg_app": "#0b0e14",
-    "bg_card": "#151b26",
-    "bg_card_hover": "#1c2433",
-    "bg_inset": "#0e131d",
-    "bg_terminal": "#070a0f",
-    "border": "#263042",
-    "border_highlight": "#3b82f6",
-    "text_primary": "#f3f4f6",
-    "text_secondary": "#9ca3af",
-    "text_muted": "#6b7280",
+    "bg_app": "#090d16",
+    "bg_card": "#131926",
+    "bg_card_hover": "#1b2334",
+    "bg_inset": "#0c111a",
+    "border": "#1e293b",
+    "border_highlight": "#38bdf8",
+    "text_primary": "#f8fafc",
+    "text_secondary": "#94a3b8",
+    "text_muted": "#64748b",
     "accent_blue": "#3b82f6",
     "accent_indigo": "#6366f1",
     "accent_cyan": "#06b6d4",
-    "success": "#10b981",
-    "success_hover": "#059669",
-    "warning": "#f59e0b",
-    "danger": "#ef4444",
-    "danger_hover": "#dc2626",
-}
-
-LOG_COLORS = {
-    "timestamp": "#6b7280",
-    "info": "#38bdf8",
-    "success": "#34d399",
-    "warning": "#fbbf24",
-    "error": "#f87171",
+    "success": "#059669",
+    "success_hover": "#047857",
+    "warning": "#d97706",
+    "danger": "#e11d48",
 }
 
 
@@ -125,23 +117,38 @@ class VoLTEFixerApp(ctk.CTk):
         header.pack(fill="x")
 
         inner = ctk.CTkFrame(header, fg_color="transparent")
-        inner.pack(fill="x", padx=16, pady=12)
+        inner.pack(fill="x", padx=16, pady=10)
 
         title_frame = ctk.CTkFrame(inner, fg_color="transparent")
         title_frame.pack(side="left")
 
+        title_row = ctk.CTkFrame(title_frame, fg_color="transparent")
+        title_row.pack(anchor="w")
+
         title_lbl = ctk.CTkLabel(
-            title_frame,
+            title_row,
             text="⚡ HBG VoLTE & IMS Fixer",
-            font=("Segoe UI", 20, "bold"),
+            font=(FONT_FAMILY, 19, "bold"),
             text_color=THEME["text_primary"]
         )
-        title_lbl.pack(anchor="w")
+        title_lbl.pack(side="left")
+
+        badge_ver = ctk.CTkLabel(
+            title_row,
+            text="v2.5 PRO",
+            font=(FONT_FAMILY, 10, "bold"),
+            text_color=THEME["accent_cyan"],
+            fg_color=THEME["bg_inset"],
+            corner_radius=6,
+            padx=6,
+            pady=2
+        )
+        badge_ver.pack(side="left", padx=(8, 0))
 
         sub_lbl = ctk.CTkLabel(
             title_frame,
-            text="Công cụ ép bật VoLTE / VoWiFi chuyên dụng cho Xiaomi, Vivo, OPPO, Samsung, Pixel",
-            font=("Segoe UI", 12),
+            text="Giải pháp ép bật VoLTE / VoWiFi tự động chuyên nghiệp cho Android",
+            font=(FONT_FAMILY, 11),
             text_color=THEME["text_secondary"]
         )
         sub_lbl.pack(anchor="w", pady=(2, 0))
@@ -151,8 +158,8 @@ class VoLTEFixerApp(ctk.CTk):
 
         self.status_badge = ctk.CTkLabel(
             btn_frame,
-            text="● Bị ngắt kết nối",
-            font=("Segoe UI", 12, "bold"),
+            text="● Ngắt kết nối",
+            font=(FONT_FAMILY, 11, "bold"),
             text_color=THEME["danger"],
             fg_color=THEME["bg_inset"],
             corner_radius=20,
@@ -164,11 +171,12 @@ class VoLTEFixerApp(ctk.CTk):
         self.btn_refresh = ctk.CTkButton(
             btn_frame,
             text="↻ Tải lại ADB",
-            font=("Segoe UI", 12, "bold"),
+            font=(FONT_FAMILY, 11, "bold"),
             fg_color=THEME["accent_indigo"],
             hover_color=THEME["accent_blue"],
             width=110,
             height=34,
+            corner_radius=8,
             command=self.refresh_devices_manual
         )
         self.btn_refresh.pack(side="left")
@@ -178,12 +186,12 @@ class VoLTEFixerApp(ctk.CTk):
         card.grid(row=0, column=0, sticky="nsew", padx=(0, 8), pady=4)
 
         inner = ctk.CTkFrame(card, fg_color="transparent")
-        inner.pack(fill="both", expand=True, padx=16, pady=12)
+        inner.pack(fill="both", expand=True, padx=14, pady=10)
 
         ctk.CTkLabel(
             inner,
             text="📱 THIẾT BỊ ĐANG KẾT NỐI",
-            font=("Segoe UI", 12, "bold"),
+            font=(FONT_FAMILY, 11, "bold"),
             text_color=THEME["accent_cyan"]
         ).pack(anchor="w")
 
@@ -191,14 +199,15 @@ class VoLTEFixerApp(ctk.CTk):
             inner,
             values=["Đang quét ADB tự động..."],
             command=self.on_device_selected,
-            font=("Segoe UI", 12),
-            dropdown_font=("Segoe UI", 12),
+            font=(FONT_FAMILY, 11),
+            dropdown_font=(FONT_FAMILY, 11),
             fg_color=THEME["bg_inset"],
             button_color=THEME["accent_indigo"],
             button_hover_color=THEME["accent_blue"],
-            height=34
+            height=34,
+            corner_radius=8
         )
-        self.device_option.pack(fill="x", pady=(8, 12))
+        self.device_option.pack(fill="x", pady=(8, 10))
 
         self.info_frame = ctk.CTkFrame(inner, fg_color=THEME["bg_inset"], corner_radius=8, border_width=1, border_color=THEME["border"])
         self.info_frame.pack(fill="both", expand=True)
@@ -213,8 +222,8 @@ class VoLTEFixerApp(ctk.CTk):
         row = ctk.CTkFrame(self.info_frame, fg_color="transparent")
         row.pack(fill="x", padx=12, pady=4)
 
-        ctk.CTkLabel(row, text=title, font=("Segoe UI", 11), text_color=THEME["text_muted"], width=130, anchor="w").pack(side="left")
-        val_lbl = ctk.CTkLabel(row, text=default_val, font=("Segoe UI", 11, "bold"), text_color=THEME["text_primary"], anchor="w")
+        ctk.CTkLabel(row, text=title, font=(FONT_FAMILY, 10), text_color=THEME["text_muted"], width=130, anchor="w").pack(side="left")
+        val_lbl = ctk.CTkLabel(row, text=default_val, font=(FONT_FAMILY, 10, "bold"), text_color=THEME["text_primary"], anchor="w")
         val_lbl.pack(side="left", fill="x", expand=True)
         return val_lbl
 
@@ -223,20 +232,20 @@ class VoLTEFixerApp(ctk.CTk):
         card.grid(row=0, column=1, sticky="nsew", padx=(8, 0), pady=4)
 
         inner = ctk.CTkFrame(card, fg_color="transparent")
-        inner.pack(fill="both", expand=True, padx=16, pady=12)
+        inner.pack(fill="both", expand=True, padx=14, pady=10)
 
         ctk.CTkLabel(
             inner,
             text="⚙️ THAO TÁC ÉP BẬT VoLTE",
-            font=("Segoe UI", 12, "bold"),
+            font=(FONT_FAMILY, 11, "bold"),
             text_color=THEME["accent_cyan"]
         ).pack(anchor="w", pady=(0, 6))
 
         # Main Smart Auto-Fix Button (Covers ALL brands: Xiaomi, Vivo, OPPO, Samsung, Pixel)
         self.btn_all_in_one = ctk.CTkButton(
             inner,
-            text="⚡ ÉP BẬT VoLTE TỰ ĐỘNG (CHO TẤT CẢ CÁC MÁY)",
-            font=("Segoe UI", 13, "bold"),
+            text="⚡ ÉP BẬT VoLTE TỰ ĐỘNG (ALL-IN-ONE)",
+            font=(FONT_FAMILY, 12, "bold"),
             fg_color=THEME["success"],
             hover_color=THEME["success_hover"],
             height=44,
@@ -253,46 +262,46 @@ class VoLTEFixerApp(ctk.CTk):
 
         # Button 1: Menu 4636 for Xiaomi, Vivo, Samsung, Pixel, AOSP
         self.btn_menu_4636 = ctk.CTkButton(
-            mod_grid, text="📱 1. Mở Menu Mạng Nâng Cao (Xiaomi/Vivo/Pixel)", font=("Segoe UI", 10, "bold"),
+            mod_grid, text="📱 1. Mở Cấu Hình Mạng Nâng Cao", font=(FONT_FAMILY, 10, "bold"),
             fg_color=THEME["bg_inset"], hover_color=THEME["bg_card_hover"],
-            border_width=1, border_color=THEME["border"], height=34,
+            border_width=1, border_color=THEME["border"], height=34, corner_radius=8,
             command=self.action_open_4636
         )
         self.btn_menu_4636.grid(row=0, column=0, sticky="ew", padx=(0, 3), pady=3)
 
         # Button 2: MTK EngineerMode for OPPO / Realme / MTK
         self.btn_menu_mtk = ctk.CTkButton(
-            mod_grid, text="🔧 2. Mở Cấu Hình Chuyên Sâu (OPPO/Realme)", font=("Segoe UI", 10, "bold"),
+            mod_grid, text="🔧 2. Mở Trình Kỹ Thuật Chuyên Sâu", font=(FONT_FAMILY, 10, "bold"),
             fg_color=THEME["bg_inset"], hover_color=THEME["bg_card_hover"],
-            border_width=1, border_color=THEME["border"], height=34,
+            border_width=1, border_color=THEME["border"], height=34, corner_radius=8,
             command=self.action_open_mtk
         )
         self.btn_menu_mtk.grid(row=0, column=1, sticky="ew", padx=(3, 0), pady=3)
 
         # Button 3: Diagnostic IMS Status
         self.btn_diag = ctk.CTkButton(
-            mod_grid, text="🔍 3. Kiểm Tra Trạng Thái VoLTE", font=("Segoe UI", 10, "bold"),
+            mod_grid, text="🔍 3. Chẩn Đoán Trạng Thái VoLTE", font=(FONT_FAMILY, 10, "bold"),
             fg_color=THEME["bg_inset"], hover_color=THEME["bg_card_hover"],
-            border_width=1, border_color=THEME["border"], height=34,
+            border_width=1, border_color=THEME["border"], height=34, corner_radius=8,
             command=self.action_diagnostics
         )
         self.btn_diag.grid(row=1, column=0, sticky="ew", padx=(0, 3), pady=3)
 
         # Button 4: Inject System Props Manual
         self.btn_props = ctk.CTkButton(
-            mod_grid, text="📡 4. Kích Hoạt Cấu Hình Thủ Công", font=("Segoe UI", 10, "bold"),
+            mod_grid, text="📡 4. Nạp Tham Số Hệ Thống", font=(FONT_FAMILY, 10, "bold"),
             fg_color=THEME["bg_inset"], hover_color=THEME["bg_card_hover"],
-            border_width=1, border_color=THEME["border"], height=34,
+            border_width=1, border_color=THEME["border"], height=34, corner_radius=8,
             command=self.action_fix_props
         )
         self.btn_props.grid(row=1, column=1, sticky="ew", padx=(3, 0), pady=3)
 
     def _build_progress_bar(self):
         prog_card = ctk.CTkFrame(self.grid_frame, fg_color=THEME["bg_card"], corner_radius=12, border_width=1, border_color=THEME["border"])
-        prog_card.pack(fill="x", pady=(14, 0))
+        prog_card.pack(fill="x", pady=(12, 0))
 
         inner = ctk.CTkFrame(prog_card, fg_color="transparent")
-        inner.pack(fill="x", padx=16, pady=14)
+        inner.pack(fill="x", padx=16, pady=12)
 
         status_bar = ctk.CTkFrame(inner, fg_color="transparent")
         status_bar.pack(fill="x", pady=(0, 6))
@@ -300,14 +309,14 @@ class VoLTEFixerApp(ctk.CTk):
         ctk.CTkLabel(
             status_bar,
             text="📊 TRẠNG THÁI TIẾN TRÌNH",
-            font=("Segoe UI", 11, "bold"),
+            font=(FONT_FAMILY, 10, "bold"),
             text_color=THEME["accent_cyan"]
         ).pack(side="left")
 
         self.lbl_status = ctk.CTkLabel(
             status_bar,
             text="Đang tự động nhận diện thiết bị ADB...",
-            font=("Segoe UI", 11),
+            font=(FONT_FAMILY, 10),
             text_color=THEME["text_secondary"]
         )
         self.lbl_status.pack(side="right")
