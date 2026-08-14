@@ -90,10 +90,9 @@ class VoLTEFixerApp(ctk.CTk):
 
         # Print startup log to CMD console
         self.log("=== HBG VoLTE & IMS Fixer Started ===", "info")
-        self.log(f"Đường dẫn ADB: {self.engine.adb_path}", "info")
-        self.log("Tự động nhận diện ADB chuẩn 100% đồng bộ với HBGAdBlocker", "info")
+        self.log("Tự động nhận diện thiết bị chuẩn 100%...", "info")
 
-        # Start continuous background ADB auto-detection thread
+        # Start continuous background device auto-detection thread
         self.start_device_auto_check()
 
     def _build_ui(self):
@@ -165,7 +164,7 @@ class VoLTEFixerApp(ctk.CTk):
 
         self.status_badge = ctk.CTkLabel(
             btn_frame,
-            text="● Chưa kết nối ADB",
+            text="● Chưa kết nối thiết bị",
             font=FONT_LABEL_BOLD,
             text_color=THEME["danger"],
             fg_color=THEME["bg_inset"],
@@ -177,14 +176,14 @@ class VoLTEFixerApp(ctk.CTk):
 
         self.btn_refresh = ctk.CTkButton(
             btn_frame,
-            text="↻ Tải lại ADB",
+            text="↻ Làm mới thiết bị",
             font=FONT_LABEL_BOLD,
             fg_color=THEME["bg_card_hover"],
             hover_color=THEME["border"],
             border_width=1,
             border_color=THEME["border"],
             text_color=THEME["text_primary"],
-            width=110,
+            width=130,
             height=34,
             corner_radius=8,
             command=self.refresh_devices_manual
@@ -207,7 +206,7 @@ class VoLTEFixerApp(ctk.CTk):
 
         self.device_option = ctk.CTkOptionMenu(
             inner,
-            values=["Đang quét ADB tự động..."],
+            values=["Đang quét thiết bị tự động..."],
             command=self.on_device_selected,
             font=FONT_LABEL,
             dropdown_font=FONT_LABEL,
@@ -333,7 +332,7 @@ class VoLTEFixerApp(ctk.CTk):
 
         self.lbl_status = ctk.CTkLabel(
             status_bar,
-            text="Đang tự động nhận diện thiết bị ADB...",
+            text="Đang tự động nhận diện thiết bị...",
             font=FONT_LABEL,
             text_color=THEME["text_secondary"]
         )
@@ -349,10 +348,8 @@ class VoLTEFixerApp(ctk.CTk):
         self.progress_bar.pack(fill="x")
         self.progress_bar.set(0)
 
-
-
     # ---------------------------------------------------------------------------
-    # ADB Device Monitor Thread (100% Parity with HBGAdBlocker DeviceManager)
+    # Device Monitor Thread
     # ---------------------------------------------------------------------------
     def start_device_auto_check(self):
         Thread(target=self._adb_monitor_thread, daemon=True).start()
@@ -395,14 +392,14 @@ class VoLTEFixerApp(ctk.CTk):
                 time.sleep(2.5)
 
     def _on_device_connected(self, model_name: str, options: list[str], dev_id: str):
-        self.status_badge.configure(text="● Đã kết nối ADB", text_color=THEME["success"])
+        self.status_badge.configure(text="● Đã kết nối thiết bị", text_color=THEME["success"])
         self.device_option.configure(values=options)
         self.device_option.set(options[0])
         self.lbl_model.configure(text=model_name)
         self.set_status("Sẵn sàng thực hiện ép cờ VoLTE.", 1.0)
-        self.log(f"✓ Đã kết nối ADB thiết bị: {model_name} [{dev_id}]", "success")
+        self.log(f"✓ Đã kết nối thiết bị: {model_name} [{dev_id}]", "success")
 
-        # Fetch deep info in background without blocking ADB loop
+        # Fetch deep info in background without blocking loop
         self.executor.submit(self._fetch_device_details_async, dev_id)
 
     def _fetch_device_details_async(self, device_id: str):
@@ -414,7 +411,7 @@ class VoLTEFixerApp(ctk.CTk):
             pass
 
     def _on_adb_disconnected(self):
-        self.status_badge.configure(text="● Bị ngắt kết nối", text_color=THEME["danger"])
+        self.status_badge.configure(text="● Chưa kết nối thiết bị", text_color=THEME["danger"])
         self.device_option.configure(values=["Không tìm thấy thiết bị"])
         self.device_option.set("Không tìm thấy thiết bị")
         self.lbl_model.configure(text="Chưa kết nối")
@@ -422,14 +419,14 @@ class VoLTEFixerApp(ctk.CTk):
         self.lbl_android.configure(text="---")
         self.lbl_sim.configure(text="---")
         self.lbl_ims.configure(text="---")
-        self.set_status("Chưa kết nối thiết bị ADB nào.", 0.0)
-        self.log("⚠ Đã ngắt kết nối thiết bị ADB.", "warning")
+        self.set_status("Chưa nhận diện được thiết bị nào.", 0.0)
+        self.log("⚠ Đã ngắt kết nối thiết bị.", "warning")
 
     def refresh_devices_manual(self):
         if self.is_working:
             return
-        self.log("🔍 Đang tải lại danh sách ADB...", "info")
-        self.set_status("Đang tải lại ADB...", 0.3)
+        self.log("🔍 Đang làm mới danh sách thiết bị...", "info")
+        self.set_status("Đang làm mới thiết bị...", 0.3)
         self.executor.submit(self._refresh_manual_thread)
 
     def _refresh_manual_thread(self):
@@ -500,7 +497,7 @@ class VoLTEFixerApp(ctk.CTk):
     # ---------------------------------------------------------------------------
     def _check_selected_device(self) -> bool:
         if not self.selected_device_id:
-            messagebox.showwarning("Cảnh báo", "Vui lòng kết nối và bật ADB Debugging trên điện thoại Android trước!")
+            messagebox.showwarning("Cảnh báo", "Vui lòng ghim cáp kết nối và bật Chế độ gỡ lỗi trên điện thoại Android trước!")
             return False
         return True
 
