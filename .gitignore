@@ -1,31 +1,11 @@
-# Byte-compiled / optimized / DLL files
 __pycache__/
-*.py[cod]
-*$py.class
-
-# C extensions
-*.so
-
-# Distribution / packaging
+*.pyc
+*.class
+*.zip
+rom_framework_dump/
 build/
-dist/
-*.egg-info/
-
-# PyInstaller
-#  Usually these files are written by a python script from a template
-#  before PyInstaller builds the exe, so:
-# *.manifest
-# *.spec
-
-# Installer output
-installer/*.exe
-
-# Environment / IDEs
-.env
-.venv
-venv/
-ENV/
-.vscode/
+.gradle/
 .idea/
-*.swp
-*.tmp
+volte_fixer_mobile/.gradle/
+volte_fixer_mobile/.idea/
+volte_fixer_mobile/app/build/

@@ -7,7 +7,7 @@ echo   DANG KHOI CHAY CONG CU SUA LOI VoLTE CHUYEN DUNG...
 echo ========================================================
 echo.
 
-cd /d "%~dp0volte_fixer_tool"
+cd /d "%~dp0"
 python volte_fixer_gui.py
 
 if %ERRORLEVEL% NEQ 0 (
