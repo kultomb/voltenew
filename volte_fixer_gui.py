@@ -317,11 +317,41 @@ class VoLTEFixerApp(ctk.CTk):
         )
         self.btn_all_in_one.pack(fill="x", pady=(0, 8))
 
-        # Secondary row with 2 buttons: Install APKs & Open Developer Options
+        # Secondary row with 4 buttons grid
         grid_sub = ctk.CTkFrame(inner, fg_color="transparent")
         grid_sub.pack(fill="x")
         grid_sub.columnconfigure(0, weight=1)
         grid_sub.columnconfigure(1, weight=1)
+
+        self.btn_cmw500 = ctk.CTkButton(
+            grid_sub,
+            text="🧪 BẬT CMW500 & ViLTE (CỔ)",
+            font=FONT_BTN_GRID,
+            fg_color=THEME["bg_inset"],
+            hover_color=THEME["bg_card_hover"],
+            border_width=1,
+            border_color=THEME["border"],
+            text_color=THEME["accent_cyan"],
+            height=36,
+            corner_radius=8,
+            command=self.action_enable_cmw500
+        )
+        self.btn_cmw500.grid(row=0, column=0, padx=(0, 4), pady=(0, 4), sticky="ew")
+
+        self.btn_ims_apn = ctk.CTkButton(
+            grid_sub,
+            text="📡 NẠP APN IMS TỰ ĐỘNG",
+            font=FONT_BTN_GRID,
+            fg_color=THEME["bg_inset"],
+            hover_color=THEME["bg_card_hover"],
+            border_width=1,
+            border_color=THEME["border"],
+            text_color=THEME["accent_cyan"],
+            height=36,
+            corner_radius=8,
+            command=self.action_inject_ims_apn
+        )
+        self.btn_ims_apn.grid(row=0, column=1, padx=(4, 0), pady=(0, 4), sticky="ew")
 
         self.btn_dev_options = ctk.CTkButton(
             grid_sub,
@@ -336,7 +366,7 @@ class VoLTEFixerApp(ctk.CTk):
             corner_radius=8,
             command=self.action_open_dev_options
         )
-        self.btn_dev_options.grid(row=0, column=0, padx=(0, 4), sticky="ew")
+        self.btn_dev_options.grid(row=1, column=0, padx=(0, 4), sticky="ew")
 
         self.btn_install_apks = ctk.CTkButton(
             grid_sub,
@@ -351,7 +381,7 @@ class VoLTEFixerApp(ctk.CTk):
             corner_radius=8,
             command=self.action_install_both_apks
         )
-        self.btn_install_apks.grid(row=0, column=1, padx=(4, 0), sticky="ew")
+        self.btn_install_apks.grid(row=1, column=1, padx=(4, 0), sticky="ew")
 
     def _build_progress_bar(self, parent):
         prog_card = ctk.CTkFrame(parent, fg_color=THEME["bg_card"], corner_radius=12, border_width=1, border_color=THEME["border"])
@@ -631,6 +661,8 @@ class VoLTEFixerApp(ctk.CTk):
         state = "normal" if enabled else "disabled"
         buttons = [
             getattr(self, "btn_all_in_one", None),
+            getattr(self, "btn_cmw500", None),
+            getattr(self, "btn_ims_apn", None),
             getattr(self, "btn_dev_options", None),
             getattr(self, "btn_install_apks", None),
             getattr(self, "btn_refresh", None),
@@ -677,6 +709,34 @@ class VoLTEFixerApp(ctk.CTk):
         dev_id = self.selected_device_id
         res = self.engine.smart_fix_all(dev_id, self.dex_path, self.log)
         self.after(0, lambda: self._on_action_completed(res, "Kích Hoạt VoLTE Tự Động"))
+
+    def action_enable_cmw500(self):
+        """Force-enable CMW500 Lab Test mode and ViLTE on legacy Android."""
+        if not self._check_selected_device():
+            return
+        self.is_working = True
+        self.set_controls_enabled(False)
+        self.set_status("Đang kích hoạt Chế Độ CMW500 Mode & ViLTE Enable...", 0.4)
+        self.executor.submit(self._run_enable_cmw500_thread)
+
+    def _run_enable_cmw500_thread(self):
+        dev_id = self.selected_device_id
+        res = self.engine.enable_cmw500_legacy_fix(dev_id, self.log)
+        self.after(0, lambda: self._on_action_completed(res, "Bật Chế Độ CMW500 Mode & ViLTE"))
+
+    def action_inject_ims_apn(self):
+        """Auto-inject IMS APN profile into Android database."""
+        if not self._check_selected_device():
+            return
+        self.is_working = True
+        self.set_controls_enabled(False)
+        self.set_status("Đang tự động nạp cấu hình APN IMS cho các nhà mạng...", 0.4)
+        self.executor.submit(self._run_inject_ims_apn_thread)
+
+    def _run_inject_ims_apn_thread(self):
+        dev_id = self.selected_device_id
+        res = self.engine.inject_ims_apn(dev_id, self.log)
+        self.after(0, lambda: self._on_action_completed(res, "Nạp Cấu Hình APN IMS"))
 
     def action_install_both_apks(self):
         """Install both Shizuku and Pixel IMS APKs manually onto target Android device in correct order."""

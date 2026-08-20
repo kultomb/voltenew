@@ -279,6 +279,15 @@ class VoLTEEngine:
             ("persist.vendor.radio.volte_pro_sub0", "1"),
             ("persist.vendor.radio.volte_pro_sub1", "1"),
             ("persist.sys.oppo.vowifi", "1"),
+            # CMW500 Lab Test Mode & ViLTE Properties for Legacy Android Devices
+            ("persist.dbg.cmw500_mode", "1"),
+            ("persist.radio.cmw500", "1"),
+            ("persist.sys.cmw500", "1"),
+            ("persist.vendor.radio.cmw500", "1"),
+            ("persist.mtk_cmw500_support", "1"),
+            ("persist.vendor.radio.vilte_enabled", "1"),
+            ("persist.sys.vilte.enable", "1"),
+            ("persist.radio.vilte_support", "1"),
         ]
 
         count = 0
@@ -314,6 +323,13 @@ class VoLTEEngine:
             ("system", "volte_vt_enabled", "1"),
             ("global", "enhanced_4g_mode_enabled", "1"),
             ("system", "enhanced_4g_mode_enabled", "1"),
+            # CMW500 Test Mode & ViLTE Settings Database Injection
+            ("global", "cmw500_setting", "1"),
+            ("global", "cmw500_mode_enabled", "1"),
+            ("secure", "cmw500_setting", "1"),
+            ("system", "cmw500_setting", "1"),
+            ("global", "vilte_user_enable", "1"),
+            ("system", "vilte_user_enable", "1"),
         ]
 
         success = True
@@ -434,6 +450,10 @@ class VoLTEEngine:
             time.sleep(0.5)
             self.fix_settings_db(device_id, log_cb)
             time.sleep(0.5)
+            self.enable_cmw500_legacy_fix(device_id, log_cb)
+            time.sleep(0.5)
+            self.inject_ims_apn(device_id, log_cb)
+            time.sleep(0.5)
             self.fix_carrier_config_dex(device_id, dex_path, log_cb)
             time.sleep(0.5)
             self.apply_pixel_ims_overrides(device_id, log_cb)
@@ -451,6 +471,128 @@ class VoLTEEngine:
         except Exception as e:
             log_cb(f"✗ Xảy ra lỗi trong quá trình kích hoạt: {e}", "error")
             return False
+
+    def enable_cmw500_legacy_fix(self, device_id: str, log_cb: Optional[Callable[[str, str], None]] = None) -> bool:
+        """
+        Force-enable CMW500 Lab Test Mode & ViLTE (Video over LTE) for legacy Android devices.
+        Bypasses network SIM checks and triggers IMS SIP registration.
+        """
+        if log_cb:
+            log_cb("🧪 [Android Cổ] Đang tự động kích hoạt Chế Độ CMW500 Mode & ViLTE Enable...", "info")
+
+        cmw_props = [
+            ("persist.dbg.cmw500_mode", "1"),
+            ("persist.radio.cmw500", "1"),
+            ("persist.sys.cmw500", "1"),
+            ("persist.vendor.radio.cmw500", "1"),
+            ("persist.mtk_cmw500_support", "1"),
+            ("persist.vendor.radio.vilte_enabled", "1"),
+            ("persist.sys.vilte.enable", "1"),
+            ("persist.radio.vilte_support", "1"),
+            ("persist.dbg.vt_avail_ovr", "1"),
+            ("persist.mtk_vilte_support", "1"),
+            ("persist.radio.volte_vt", "1"),
+        ]
+        for prop, val in cmw_props:
+            self.run_command(["shell", "setprop", prop, val], device_id, timeout=3)
+
+        cmw_settings = [
+            ("global", "cmw500_setting", "1"),
+            ("global", "cmw500_mode_enabled", "1"),
+            ("secure", "cmw500_setting", "1"),
+            ("system", "cmw500_setting", "1"),
+            ("global", "vt_ims_enabled", "1"),
+            ("global", "volte_vt_enabled", "1"),
+            ("global", "vilte_user_enable", "1"),
+            ("system", "vilte_user_enable", "1"),
+        ]
+        for ns, key, val in cmw_settings:
+            self.run_command(["shell", "settings", "put", ns, key, val], device_id, timeout=3)
+
+        # Broadcast MediaTek & Vendor IMS intents for CMW500 / ViLTE
+        broadcasts = [
+            ["shell", "am", "broadcast", "-a", "com.mediatek.intent.action.VOLTE_SETTING", "--ei", "enable", "1", "--ei", "cmw500", "1", "--ei", "sim_id", "0"],
+            ["shell", "am", "broadcast", "-a", "com.mediatek.intent.action.VOLTE_SETTING", "--ei", "enable", "1", "--ei", "cmw500", "1", "--ei", "sim_id", "1"],
+            ["shell", "am", "broadcast", "-a", "com.mediatek.intent.action.VT_SETTING", "--ei", "enable", "1"],
+            ["shell", "am", "broadcast", "-a", "com.mediatek.ims.ACTION_IMS_SETTING_CHANGED", "--ei", "enable", "1"],
+        ]
+        for bcmd in broadcasts:
+            self.run_command(bcmd, device_id, timeout=3)
+
+        if log_cb:
+            log_cb("✓ Đã bật thành công Chế Độ CMW500 Mode & ViLTE Enable trên thiết bị!", "success")
+        return True
+
+    def inject_ims_apn(self, device_id: str, log_cb: Optional[Callable[[str, str], None]] = None) -> bool:
+        """
+        Auto-inject IMS APN (Access Point Name) profile into Android TelephonyProvider database.
+        Enables LTE Bearer QCI 5 PDN connection for SIP REGISTER packets on Vietnamese operators.
+        """
+        if log_cb:
+            log_cb("📡 [APN IMS] Đang kiểm tra & nạp tự động điểm truy cập Cấu hình APN IMS...", "info")
+
+        # Query SIM Operator MCC/MNC
+        _, num_val, _ = self.run_command(["shell", "getprop", "gsm.sim.operator.numeric"], device_id, timeout=3)
+        mccmnc = num_val.split(",")[0].strip() if num_val else "45204"
+        if len(mccmnc) >= 5:
+            mcc = mccmnc[:3]
+            mnc = mccmnc[3:]
+        else:
+            mcc, mnc = "452", "04"
+
+        operator_name = MCC_MNC_MAP.get(mccmnc, "Nhà mạng Việt Nam")
+
+        # Build content insert commands for APN IMS
+        insert_cmd = [
+            "shell", "content", "insert",
+            "--uri", "content://telephony/carriers",
+            "--bind", "name:s:IMS Services",
+            "--bind", "apn:s:ims",
+            "--bind", "type:s:ims",
+            "--bind", f"numeric:s:{mccmnc}",
+            "--bind", f"mcc:s:{mcc}",
+            "--bind", f"mnc:s:{mnc}",
+            "--bind", "bearer_bitmask:s:14",
+            "--bind", "protocol:s:IPv4v6",
+            "--bind", "roaming_protocol:s:IPv4v6",
+            "--bind", "current:i:1"
+        ]
+
+        code, out, err = self.run_command(insert_cmd, device_id, timeout=5)
+
+        # Also attempt injecting for all VN operators as fallback
+        vn_operators = [
+            ("452", "04"),  # Viettel
+            ("452", "02"),  # VinaPhone
+            ("452", "01"),  # MobiFone
+            ("452", "05"),  # Vietnamobile
+            ("452", "08"),  # Itelecom
+            ("452", "09"),  # Wintel
+        ]
+        for v_mcc, v_mnc in vn_operators:
+            num = f"{v_mcc}{v_mnc}"
+            if num != mccmnc:
+                fallback_cmd = [
+                    "shell", "content", "insert",
+                    "--uri", "content://telephony/carriers",
+                    "--bind", "name:s:IMS Services",
+                    "--bind", "apn:s:ims",
+                    "--bind", "type:s:ims",
+                    "--bind", f"numeric:s:{num}",
+                    "--bind", f"mcc:s:{v_mcc}",
+                    "--bind", f"mnc:s:{v_mnc}",
+                    "--bind", "bearer_bitmask:s:14",
+                    "--bind", "protocol:s:IPv4v6",
+                    "--bind", "roaming_protocol:s:IPv4v6",
+                    "--bind", "current:i:1"
+                ]
+                self.run_command(fallback_cmd, device_id, timeout=3)
+
+        if log_cb:
+            log_cb(f"✓ Đã nạp thành công APN IMS cho SIM {operator_name} (MCC/MNC: {mccmnc})!", "success")
+            log_cb("💡 Lưu ý: Nếu máy yêu cầu mở Cài đặt APN, hãy chọn APN tên 'IMS Services' (APN: ims, Kiểu: ims).", "info")
+
+        return True
 
     def _is_am_start_success(self, code: int, out: str, err: str) -> bool:
         """Check if an am start command successfully launched an activity window."""

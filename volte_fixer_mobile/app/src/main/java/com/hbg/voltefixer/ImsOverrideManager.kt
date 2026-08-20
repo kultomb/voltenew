@@ -26,7 +26,7 @@ object ImsOverrideManager {
             cmds.add("setprop persist.vendor.radio.volte_ignore_sub 1")
         }
 
-        // OPPO & MediaTek specific props (OPPO A5s support)
+        // OPPO & MediaTek & CMW500 specific props (OPPO A5s & Legacy Android support)
         cmds.add("setprop persist.sys.oppo.volte 1")
         cmds.add("setprop persist.radio_oppo_ct_volte_support 1")
         cmds.add("setprop persist.radio.oppo_volte_state 1")
@@ -36,8 +36,30 @@ object ImsOverrideManager {
         cmds.add("setprop persist.mtk_ims_support 1")
         cmds.add("setprop persist.mtk_dynamic_ims_support 1")
         cmds.add("setprop persist.vendor.mtk_dynamic_ims_support 1")
+        cmds.add("setprop persist.dbg.cmw500_mode 1")
+        cmds.add("setprop persist.radio.cmw500 1")
+        cmds.add("setprop persist.sys.cmw500 1")
+        cmds.add("setprop persist.vendor.radio.cmw500 1")
+        cmds.add("setprop persist.mtk_cmw500_support 1")
+        cmds.add("setprop persist.vendor.radio.vilte_enabled 1")
+        cmds.add("setprop persist.sys.vilte.enable 1")
+        cmds.add("setprop persist.radio.vilte_support 1")
 
-        // 2. CarrierConfig overrides matching Pixel IMS
+        // 2. APN IMS Auto-Injection into Telephony Database
+        val vnOperators = listOf(
+            "45204" to ("452" to "04"), // Viettel
+            "45202" to ("452" to "02"), // VinaPhone
+            "45201" to ("452" to "01"), // MobiFone
+            "45205" to ("452" to "05"), // Vietnamobile
+            "45208" to ("452" to "08"), // Itelecom
+            "45209" to ("452" to "09")  // Wintel
+        )
+        for ((num, pair) in vnOperators) {
+            val (mcc, mnc) = pair
+            cmds.add("content insert --uri content://telephony/carriers --bind name:s:\"IMS Services\" --bind apn:s:ims --bind type:s:ims --bind numeric:s:$num --bind mcc:s:$mcc --bind mnc:s:$mnc --bind bearer_bitmask:s:14 --bind protocol:s:IPv4v6 --bind roaming_protocol:s:IPv4v6 --bind current:i:1")
+        }
+
+        // 3. CarrierConfig overrides matching Pixel IMS
         val pixelConfigs = listOf(
             "carrier_volte_available_bool" to volte.toString(),
             "carrier_volte_provisioned_bool" to volte.toString(),
@@ -62,22 +84,23 @@ object ImsOverrideManager {
             }
         }
 
-        // 3. Notify carrier config changes
+        // 4. Notify carrier config changes
         for (sub in subIds) {
             cmds.add("cmd phone cc notify --sub $sub")
             cmds.add("am broadcast -a android.telephony.action.CARRIER_CONFIG_CHANGED --ei subscription $sub")
             cmds.add("am broadcast -a android.telephony.action.CARRIER_CONFIG_CHANGED --ei android.telephony.extra.SUBSCRIPTION_INDEX $sub")
         }
 
-        // MediaTek MT6765 & ColorOS 5.2 Direct IMS Broadcasts
+        // MediaTek MT6765 & ColorOS 5.2 Direct IMS & CMW500 & ViLTE Broadcasts
         cmds.add("am broadcast -a com.mediatek.intent.action.IMS_SETTING --ei enable 1")
         cmds.add("am broadcast -a com.mediatek.ims.ACTION_IMS_SETTING_CHANGED --ei enable 1")
-        cmds.add("am broadcast -a com.mediatek.intent.action.VOLTE_SETTING --ei enable 1 --ei sim_id 0")
-        cmds.add("am broadcast -a com.mediatek.intent.action.VOLTE_SETTING --ei enable 1 --ei sim_id 1")
+        cmds.add("am broadcast -a com.mediatek.intent.action.VOLTE_SETTING --ei enable 1 --ei cmw500 1 --ei sim_id 0")
+        cmds.add("am broadcast -a com.mediatek.intent.action.VOLTE_SETTING --ei enable 1 --ei cmw500 1 --ei sim_id 1")
+        cmds.add("am broadcast -a com.mediatek.intent.action.VT_SETTING --ei enable 1")
         cmds.add("am broadcast -a com.oppo.intent.action.VOLTE_STATE_CHANGE --ei state 1")
         cmds.add("am broadcast -a com.oppo.intent.action.OPPO_VOLTE_STATE_CHANGE --ei state 1")
 
-        // 4. Global, Secure, System database injection
+        // 5. Global, Secure, System database injection
         val globalVal = if (volte) "1" else "0"
         val vowifiVal = if (vowifi) "1" else "0"
         val vtVal = if (vt) "1" else "0"
@@ -100,14 +123,17 @@ object ImsOverrideManager {
             cmds.add("settings put $ns config_oppo_volte_notify_stable_bool 1")
             cmds.add("settings put $ns hVolteByCarrier 1")
             cmds.add("settings put $ns KEY_HVOLTE 1")
+            cmds.add("settings put $ns cmw500_setting 1")
+            cmds.add("settings put $ns cmw500_mode_enabled 1")
+            cmds.add("settings put $ns vilte_user_enable 1")
         }
 
-        // 5. Restart ColorOS Telephony & Settings UI
+        // 6. Restart ColorOS Telephony & Settings UI
         cmds.add("am force-stop com.android.phone")
         cmds.add("am force-stop com.coloros.wirelesssettings")
         cmds.add("am force-stop com.android.settings")
 
-        // 6. Airplane mode reset to re-register IMS
+        // 7. Airplane mode reset to re-register IMS
         cmds.add("cmd connectivity airplane-mode enable")
         cmds.add("cmd connectivity airplane-mode disable")
 
