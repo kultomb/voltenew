@@ -80,14 +80,14 @@ class VoLTEFixerApp(ctk.CTk):
 
         # Window Configuration & Symmetrical Dual-Window Centering
         self.title("HBG VoLTE & IMS Fixer ⚡")
-        w, h = 1040, 620
+        w, h = 1080, 680
         self.update_idletasks()
         screen_w = self.winfo_screenwidth()
         screen_h = self.winfo_screenheight()
 
-        # Calculate position to center the combined pair (Main App 1040px + 10px Gap + ~360px Live Screen = 1410px total)
-        combined_w = 1410
-        if screen_w >= 1420:
+        # Calculate position to center the enlarged combined pair (Main App 1080px + 12px Gap + ~440px Live Screen = 1532px total)
+        combined_w = 1532
+        if screen_w >= 1540:
             cx = (screen_w - combined_w) // 2
         else:
             cx = (screen_w - w) // 2
