@@ -233,7 +233,20 @@ class VoLTEFixerApp(ctk.CTk):
             corner_radius=8,
             command=self.toggle_standalone_mirror
         )
-        self.btn_live_screen.pack(side="left")
+        self.btn_live_screen.pack(side="left", padx=(0, 6))
+
+        self.btn_donate = ctk.CTkButton(
+            btn_frame,
+            text="❤️ Donate 🍼",
+            font=FONT_LABEL_BOLD,
+            fg_color="#f43f5e",
+            hover_color="#e11d48",
+            text_color="#ffffff",
+            height=32,
+            corner_radius=8,
+            command=self.open_donate_dialog
+        )
+        self.btn_donate.pack(side="left")
 
     def _build_device_card(self, parent):
         card = ctk.CTkFrame(parent, fg_color=THEME["bg_card"], corner_radius=12, border_width=1, border_color=THEME["border"])
@@ -367,6 +380,19 @@ class VoLTEFixerApp(ctk.CTk):
             command=self.action_install_both_apks
         )
         self.btn_install_apks.grid(row=1, column=0, columnspan=2, pady=(2, 0), sticky="ew")
+
+        self.btn_donate_hero = ctk.CTkButton(
+            grid_sub,
+            text="❤️ DONATE - HỘP SỮA CHO CON GÁI TÁC GIẢ 🍼",
+            font=FONT_BTN_GRID,
+            fg_color="#f43f5e",
+            hover_color="#e11d48",
+            text_color="#ffffff",
+            height=36,
+            corner_radius=8,
+            command=self.open_donate_dialog
+        )
+        self.btn_donate_hero.grid(row=2, column=0, columnspan=2, pady=(6, 0), sticky="ew")
 
     def _build_progress_bar(self, parent):
         prog_card = ctk.CTkFrame(parent, fg_color=THEME["bg_card"], corner_radius=12, border_width=1, border_color=THEME["border"])
@@ -747,6 +773,60 @@ class VoLTEFixerApp(ctk.CTk):
     def _run_diagnostics_thread(self):
         self.engine.open_radio_info_menu(self.selected_device_id, self.log)
         self.engine.check_ims_diagnostics(self.selected_device_id, self.log)
+
+    def open_donate_dialog(self):
+        """Open popup modal dialog displaying VietQR code and daughter milk call-to-action."""
+        from PIL import Image
+
+        dlg = ctk.CTkToplevel(self)
+        dlg.title("❤️ Ủng Hộ Tác Giả — Hộp Sữa Cho Con Gái 🍼")
+        dlg.geometry("480x590")
+        dlg.resizable(False, False)
+        dlg.grab_set()
+        dlg.configure(fg_color=THEME["bg_app"])
+
+        # Title Banner
+        banner = ctk.CTkFrame(dlg, fg_color=THEME["bg_card"], corner_radius=10, border_width=1, border_color=THEME["border"])
+        banner.pack(fill="x", padx=16, pady=(14, 8))
+
+        ctk.CTkLabel(
+            banner,
+            text="❤️ HỘP SỮA CHO CON GÁI TÁC GIẢ 🍼",
+            font=FONT_CARD_TITLE,
+            text_color="#f43f5e"
+        ).pack(pady=(10, 2))
+
+        ctk.CTkLabel(
+            banner,
+            text="Nếu công cụ đã giúp bạn sửa lỗi VoLTE thành công và gọi thoại mượt mà,\ntiếc gì một hộp sữa nho nhỏ cho con gái của tác giả đúng không ạ? 🥰\nMọi ủng hộ của bạn là động lực rất lớn để tác giả tiếp tục nâng cấp tool!",
+            font=FONT_SUBTITLE,
+            text_color=THEME["text_secondary"],
+            justify="center"
+        ).pack(padx=12, pady=(0, 10))
+
+        # QR Image Frame
+        qr_frame = ctk.CTkFrame(dlg, fg_color=THEME["bg_inset"], corner_radius=12, border_width=1, border_color=THEME["border"])
+        qr_frame.pack(padx=16, pady=4, fill="both", expand=True)
+
+        qr_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "donate_qr.jpg")
+        if os.path.exists(qr_path):
+            try:
+                pil_img = Image.open(qr_path)
+                ctk_img = ctk.CTkImage(light_image=pil_img, dark_image=pil_img, size=(320, 350))
+                lbl_qr = ctk.CTkLabel(qr_frame, image=ctk_img, text="")
+                lbl_qr.pack(padx=10, pady=10)
+            except Exception as e:
+                ctk.CTkLabel(qr_frame, text=f"Lỗi tải ảnh QR: {e}", font=FONT_LABEL).pack(pady=40)
+        else:
+            ctk.CTkLabel(qr_frame, text="Vui lòng quét mã VietQR MB Bank bên trên!", font=FONT_LABEL).pack(pady=40)
+
+        # Footer note
+        ctk.CTkLabel(
+            dlg,
+            text="Ngân hàng: MB Bank (VietQR Nạp 24/7) — Chúc bạn ngày tốt lành! ✨",
+            font=FONT_LABEL,
+            text_color=THEME["text_muted"]
+        ).pack(pady=(4, 12))
 
     def open_wireless_adb_dialog(self):
         """Open popup modal dialog for Wireless ADB pairing & connecting."""

@@ -79,6 +79,24 @@ class MainActivity : AppCompatActivity() {
         binding.btnFixAll.setOnClickListener {
             runFixAll()
         }
+        binding.btnDonate.setOnClickListener {
+            showDonateDialog()
+        }
+    }
+
+    private fun showDonateDialog() {
+        val imageView = android.widget.ImageView(this).apply {
+            setImageResource(R.drawable.donate_qr)
+            adjustViewBounds = true
+            setPadding(32, 24, 32, 24)
+        }
+
+        AlertDialog.Builder(this)
+            .setTitle("❤️ Hộp Sữa Cho Con Gái Tác Giả 🍼")
+            .setMessage("Nếu ứng dụng đã giúp bạn kích hoạt VoLTE thành công và gọi thoại mượt mà, tiếc gì một hộp sữa nho nhỏ cho bé đúng không ạ? 🥰\n\nMọi ủng hộ VietQR MB Bank của bạn là động lực rất lớn để tác giả tiếp tục nâng cấp phần mềm hoàn toàn miễn phí!")
+            .setView(imageView)
+            .setPositiveButton("Cảm ơn bạn! ❤️") { dialog, _ -> dialog.dismiss() }
+            .show()
     }
 
     private fun runFixAll() {

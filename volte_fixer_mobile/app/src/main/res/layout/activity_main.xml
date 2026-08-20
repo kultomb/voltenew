@@ -71,5 +71,18 @@
             app:backgroundTint="@color/accent_green"
             app:cornerRadius="12dp" />
 
+        <!-- Donate Button -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnDonate"
+            android:layout_width="match_parent"
+            android:layout_height="54dp"
+            android:layout_marginTop="12dp"
+            android:text="❤️ DONATE - HỘP SỮA CHO CON GÁI TÁC GIẢ 🍼"
+            android:textColor="@color/white"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            app:backgroundTint="#f43f5e"
+            app:cornerRadius="12dp" />
+
     </LinearLayout>
 </ScrollView>
