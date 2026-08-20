@@ -38,6 +38,19 @@ MCC_MNC_MAP = {
 
 
 def find_adb_path() -> str:
+    meipass = getattr(sys, '_MEIPASS', current_dir)
+    candidates = [
+        os.path.join(current_dir, "adb", "adb.exe"),
+        os.path.join(meipass, "adb", "adb.exe"),
+        os.path.join(current_dir, "scrcpy", "scrcpy-win64-v2.7", "adb.exe"),
+        os.path.join(meipass, "scrcpy", "scrcpy-win64-v2.7", "adb.exe"),
+        os.path.join(parent_dir, "platform-tools", "adb.exe"),
+        os.path.join(current_dir, "platform-tools", "adb.exe"),
+    ]
+    for c in candidates:
+        if os.path.isfile(c):
+            return c
+
     if DeviceManager is not None:
         try:
             dm = DeviceManager()
@@ -47,16 +60,7 @@ def find_adb_path() -> str:
         except Exception:
             pass
 
-    candidates = [
-        os.path.join(current_dir, "scrcpy", "scrcpy-win64-v2.7", "adb.exe"),
-        os.path.join(parent_dir, "platform-tools", "adb.exe"),
-        os.path.join(current_dir, "platform-tools", "adb.exe"),
-    ]
-    for c in candidates:
-        if os.path.isfile(c):
-            return c
-
-    return "adb"
+    return shutil.which("adb") or "adb"
 
 
 class VoLTEEngine:

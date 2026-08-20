@@ -142,6 +142,7 @@ def run_pyinstaller_build(ver_str: str) -> bool:
         "--onedir",
         "--windowed",
         "--name=HBG_VoLTE_Fixer",
+        f"--add-data=adb{os.path.pathsep}adb",
         f"--add-data=assets{os.path.pathsep}assets",
         f"--add-data=scrcpy{os.path.pathsep}scrcpy",
         f"--add-data=Shizuku_13.6.0.r1091.b844bc49_APKPure.apk{os.path.pathsep}.",
@@ -192,7 +193,7 @@ def build_release_zip(ver_str: str, build_num: int) -> str:
                 "pixel-ims-1-3-2.apk",
                 "hbg-volte-fixer-v1.apk"
             ]
-            dirs_to_include = ["assets", "scrcpy"]
+            dirs_to_include = ["adb", "assets", "scrcpy"]
 
             folder_in_zip = f"HBG_VoLTE_Fixer_v{ver_str}"
             for f in files_to_include:
