@@ -291,11 +291,6 @@ class VoLTEEngine:
             ("persist.vendor.radio.volte_pro_sub1", "1"),
             ("persist.sys.oppo.vowifi", "1"),
             # Commercial Network Mode & ViLTE Properties (Preserves 4G Data Internet Access)
-            ("persist.dbg.cmw500_mode", "0"),
-            ("persist.radio.cmw500", "0"),
-            ("persist.sys.cmw500", "0"),
-            ("persist.vendor.radio.cmw500", "0"),
-            ("persist.mtk_cmw500_support", "0"),
             ("persist.vendor.radio.vilte_enabled", "1"),
             ("persist.sys.vilte.enable", "1"),
             ("persist.radio.vilte_support", "1"),
@@ -405,11 +400,6 @@ class VoLTEEngine:
             ("global", "enhanced_4g_mode_enabled_sub1", "1"),
             ("system", "enhanced_4g_mode_enabled_sub0", "1"),
             ("system", "enhanced_4g_mode_enabled_sub1", "1"),
-            # CMW500 Test Mode & ViLTE Settings Database Injection
-            ("global", "cmw500_setting", "1"),
-            ("global", "cmw500_mode_enabled", "1"),
-            ("secure", "cmw500_setting", "1"),
-            ("system", "cmw500_setting", "1"),
             ("global", "vilte_user_enable", "1"),
             ("system", "vilte_user_enable", "1"),
         ]
@@ -542,167 +532,10 @@ class VoLTEEngine:
 
             log_cb("🎉 HOÀN THÀNH: Đã tự động nạp toàn bộ cấu hình ép bật VoLTE cho thiết bị!", "success")
 
-            if info.get("is_oppo") or info.get("is_mtk"):
-                log_cb("💡 HƯỚNG DẪN DÀNH CHO OPPO / REALME / MTK:", "warning")
-                log_cb("   • Bạn có thể nhấn nút '🧪 BẬT CMW500 & ViLTE (CỔ)' hoặc '🔧 Mở Trình Kỹ Thuật (EngineerMode)' -> Telephony -> IMS -> VoLTE Setting -> Bấm SET.", "info")
-
             return True
         except Exception as e:
             log_cb(f"✗ Xảy ra lỗi trong quá trình kích hoạt: {e}", "error")
             return False
-
-    def enable_cmw500_legacy_fix(self, device_id: str, log_cb: Optional[Callable[[str, str], None]] = None) -> bool:
-        """
-        Force-enable CMW500 Lab Test Mode & ViLTE (Video over LTE) for legacy Android devices.
-        Bypasses network SIM checks and triggers IMS SIP registration.
-        """
-        if log_cb:
-            log_cb("🧪 [Android Cổ] Đang tự động kích hoạt Chế Độ CMW500 Mode & ViLTE Enable...", "info")
-
-        cmw_props = [
-            ("persist.dbg.cmw500_mode", "1"),
-            ("persist.radio.cmw500", "1"),
-            ("persist.sys.cmw500", "1"),
-            ("persist.vendor.radio.cmw500", "1"),
-            ("persist.mtk_cmw500_support", "1"),
-            ("persist.vendor.radio.vilte_enabled", "1"),
-            ("persist.sys.vilte.enable", "1"),
-            ("persist.radio.vilte_support", "1"),
-            ("persist.dbg.vt_avail_ovr", "1"),
-            ("persist.mtk_vilte_support", "1"),
-            ("persist.radio.volte_vt", "1"),
-        ]
-        for prop, val in cmw_props:
-            self.run_command(["shell", "setprop", prop, val], device_id, timeout=3)
-
-        cmw_settings = [
-            ("global", "cmw500_setting", "1"),
-            ("global", "cmw500_mode_enabled", "1"),
-            ("secure", "cmw500_setting", "1"),
-            ("system", "cmw500_setting", "1"),
-            ("global", "vt_ims_enabled", "1"),
-            ("global", "volte_vt_enabled", "1"),
-            ("global", "vilte_user_enable", "1"),
-            ("system", "vilte_user_enable", "1"),
-        ]
-        for ns, key, val in cmw_settings:
-            self.run_command(["shell", "settings", "put", ns, key, val], device_id, timeout=3)
-
-        # Broadcast MediaTek & Vendor IMS intents for CMW500 / ViLTE
-        broadcasts = [
-            ["shell", "am", "broadcast", "-a", "com.mediatek.intent.action.VOLTE_SETTING", "--ei", "enable", "1", "--ei", "cmw500", "1", "--ei", "sim_id", "0"],
-            ["shell", "am", "broadcast", "-a", "com.mediatek.intent.action.VOLTE_SETTING", "--ei", "enable", "1", "--ei", "cmw500", "1", "--ei", "sim_id", "1"],
-            ["shell", "am", "broadcast", "-a", "com.mediatek.intent.action.VT_SETTING", "--ei", "enable", "1"],
-            ["shell", "am", "broadcast", "-a", "com.mediatek.ims.ACTION_IMS_SETTING_CHANGED", "--ei", "enable", "1"],
-        ]
-        for bcmd in broadcasts:
-            self.run_command(bcmd, device_id, timeout=3)
-
-        # Perform Automated Screen Click on "CMW500 setting" & "Set" button in EngineerMode UI
-        self.auto_click_cmw500_in_engineer_mode(device_id, log_cb)
-
-        if log_cb:
-            log_cb("✓ Đã bật & tự động chọn 'CMW500 setting' + Bấm 'SET' thành công trên thiết bị!", "success")
-        return True
-
-    def auto_click_cmw500_in_engineer_mode(self, device_id: str, log_cb: Optional[Callable[[str, str], None]] = None) -> bool:
-        """
-        Automates UI interaction in MediaTek / OPPO EngineerMode VolteSetting screen:
-        1. Launches VolteSetting activity.
-        2. Dumps UI XML hierarchy.
-        3. Automatically taps 'CMW500 setting' radio button.
-        4. Taps the corresponding 'Set' button to commit setting to modem.
-        """
-        if log_cb:
-            log_cb("📱 [Auto-Click EngineerMode] Đang mở VolteSetting & Tự động gạt công tắc 'CMW500 setting'...", "info")
-
-        # Wake screen & unlock
-        self.run_command(["shell", "input", "keyevent", "224"], device_id, timeout=2)
-        self.run_command(["shell", "wm", "dismiss-keyguard"], device_id, timeout=2)
-
-        # Activities to launch
-        activities = [
-            ["shell", "am", "start", "-n", "com.mediatek.engineermode/.volte.VolteSetting"],
-            ["shell", "am", "start", "-f", "0x14000000", "-n", "com.mediatek.engineermode/.volte.VolteSetting"],
-            ["shell", "am", "start", "-n", "com.mediatek.engineermode/.ims.ImsActivity"],
-            ["shell", "am", "start", "-f", "0x14000000", "-n", "com.oppo.engineermode/.volte.VolteSetting"],
-            ["shell", "am", "start", "-f", "0x14000000", "-n", "com.oplus.engineermode/.volte.VolteSetting"],
-            ["shell", "am", "start", "-n", "com.mediatek.engineermode/.EngineerMode"],
-            ["shell", "am", "start", "-n", "com.oppo.engineermode/.EngineerMode"],
-        ]
-
-        opened = False
-        for cmd in activities:
-            code, out, err = self.run_command(cmd, device_id, timeout=4)
-            if self._is_am_start_success(code, out, err):
-                opened = True
-                break
-
-        if not opened:
-            if log_cb:
-                log_cb("  ℹ Thiết bị này không hỗ trợ màn hình Kỹ thuật MediaTek CMW500 UI (Đã áp dụng cờ cắm ngầm ADB).", "info")
-            return False
-
-        time.sleep(1.2)
-
-        # Dump UI XML hierarchy
-        self.run_command(["shell", "uiautomator", "dump", "/sdcard/window_dump.xml"], device_id, timeout=6)
-        _, xml_content, _ = self.run_command(["shell", "cat", "/sdcard/window_dump.xml"], device_id, timeout=4)
-
-        tapped_cmw = False
-        tapped_set = False
-
-        if xml_content and "bounds=" in xml_content:
-            import re
-            pattern = re.compile(r'<node[^>]*text="([^"]*)"[^>]*bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"', re.IGNORECASE)
-            matches = pattern.findall(xml_content)
-
-            cmw_y = -1
-            # 1. Look for CMW500 setting radio button
-            for text, x1, y1, x2, y2 in matches:
-                if "cmw500" in text.lower():
-                    cx = (int(x1) + int(x2)) // 2
-                    cy = (int(y1) + int(y2)) // 2
-                    cmw_y = cy
-                    if log_cb:
-                        log_cb(f"  ✓ Phát hiện 'CMW500 setting' tại ({cx}, {cy}). Đang tự động bấm...", "success")
-                    self.run_command(["shell", "input", "tap", str(cx), str(cy)], device_id, timeout=3)
-                    tapped_cmw = True
-                    time.sleep(0.6)
-                    break
-
-            # 2. Look for "Set" button under VOLTE Setting
-            set_candidates = []
-            for text, x1, y1, x2, y2 in matches:
-                if text.strip().lower() == "set":
-                    cx = (int(x1) + int(x2)) // 2
-                    cy = (int(y1) + int(y2)) // 2
-                    set_candidates.append((cx, cy))
-
-            if set_candidates:
-                best_set = None
-                if cmw_y > 0:
-                    for scx, scy in set_candidates:
-                        if scy > cmw_y:
-                            best_set = (scx, scy)
-                            break
-                if not best_set:
-                    best_set = set_candidates[0]
-
-                if log_cb:
-                    log_cb(f"  ✓ Đang tự động bấm nút 'SET' tại ({best_set[0]}, {best_set[1]}) để kích hoạt...", "success")
-                self.run_command(["shell", "input", "tap", str(best_set[0]), str(best_set[1])], device_id, timeout=3)
-                tapped_set = True
-                time.sleep(0.5)
-
-        if opened and (not tapped_cmw or not tapped_set):
-            if log_cb:
-                log_cb("  ℹ Đã mở sẵn màn hình Trình Kỹ Thuật (IMS / VolteSetting). Bạn có thể bấm chọn CMW500 setting và bấm SET thủ công.", "info")
-
-        if log_cb:
-            log_cb("🎉 MỞ MÀN HÌNH KỸ THUẬT MTK/IMS HOÀN TẤT!", "success")
-
-        return True
 
     def inject_ims_apn(self, device_id: str, log_cb: Optional[Callable[[str, str], None]] = None) -> bool:
         """

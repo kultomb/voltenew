@@ -142,12 +142,17 @@ def run_pyinstaller_build(ver_str: str) -> bool:
         except Exception:
             pass
 
-    cmd = [
+    icon_path = os.path.join(BASE_DIR, "assets", "app_icon.ico")
+    icon_flag = [f"--icon={icon_path}"] if os.path.exists(icon_path) else []
+
+    # 1. Build Onedir Package
+    cmd_onedir = [
         sys.executable, "-m", "PyInstaller",
         "--noconfirm",
         "--onedir",
         "--windowed",
         "--name=HBG_VoLTE_Fixer",
+        *icon_flag,
         f"--add-data=adb{os.path.pathsep}adb",
         f"--add-data=assets{os.path.pathsep}assets",
         f"--add-data=scrcpy{os.path.pathsep}scrcpy",
@@ -156,8 +161,38 @@ def run_pyinstaller_build(ver_str: str) -> bool:
         "volte_fixer_gui.py"
     ]
 
-    res = subprocess.run(cmd, cwd=BASE_DIR)
-    if res.returncode == 0:
+    print("  [1/2] Đang đóng gói bản thư mục (onedir)...")
+    res1 = subprocess.run(cmd_onedir, cwd=BASE_DIR)
+
+    # 2. Build Single Standalone Executable
+    cmd_onefile = [
+        sys.executable, "-m", "PyInstaller",
+        "--noconfirm",
+        "--onefile",
+        "--windowed",
+        "--name=HBG_VoLTE_Fixer_Standalone",
+        *icon_flag,
+        f"--add-data=adb{os.path.pathsep}adb",
+        f"--add-data=assets{os.path.pathsep}assets",
+        f"--add-data=scrcpy{os.path.pathsep}scrcpy",
+        f"--add-data=Shizuku_13.6.0.r1091.b844bc49_APKPure.apk{os.path.pathsep}.",
+        f"--add-data=pixel-ims-1-3-2.apk{os.path.pathsep}.",
+        "volte_fixer_gui.py"
+    ]
+
+    print("  [2/2] Đang đóng gói bản 1-File độc lập (onefile)...")
+    res2 = subprocess.run(cmd_onefile, cwd=BASE_DIR)
+
+    standalone_src = os.path.join(dist_dir, "HBG_VoLTE_Fixer_Standalone.exe")
+    onedir_target = os.path.join(dist_dir, "HBG_VoLTE_Fixer", "HBG_VoLTE_Fixer_Standalone.exe")
+
+    if os.path.exists(standalone_src) and os.path.exists(os.path.dirname(onedir_target)):
+        try:
+            shutil.copy2(standalone_src, onedir_target)
+        except Exception:
+            pass
+
+    if res1.returncode == 0 or res2.returncode == 0:
         print("  ✓ Đóng gói PyInstaller EXE thành công!")
         return True
     else:
@@ -179,6 +214,29 @@ def build_release_zip(ver_str: str, build_num: int) -> str:
             pass
 
     exe_dist = os.path.join(BASE_DIR, "dist", "HBG_VoLTE_Fixer")
+
+    # Generate HUONG_DAN_SU_DUNG.txt inside distribution folder
+    guide_content = (
+        "====================================================================\n"
+        "           HBG VoLTE & IMS Fixer — LƯU Ý KHI SỬ DỤNG\n"
+        "====================================================================\n\n"
+        "1. NÊN DÙNG BẢN: HBG_VoLTE_Fixer_Standalone.exe (Bản 1 File Độc Lập)\n"
+        "   - Bạn có thể kéo duy nhất 1 file này ra Desktop hoặc copy đi bất kỳ đâu.\n"
+        "   - Bấm mở chạy ngay không bao giờ báo lỗi thiếu thư mục _internal.\n\n"
+        "2. NẾU CHẠY BẢN: HBG_VoLTE_Fixer.exe (Bản Thư Mục)\n"
+        "   - BẮT BUỘC phải Giải Nén (Extract All) toàn bộ tệp ZIP vào 1 thư mục.\n"
+        "   - Luôn giữ file HBG_VoLTE_Fixer.exe nằm chung với thư mục _internal.\n"
+        "   - KHÔNG kéo riêng file HBG_VoLTE_Fixer.exe ra ngoài Desktop mà thiếu _internal!\n\n"
+        "3. NẾU MÁY KHÁC BÁO LỖI MISSING DLL / LOADLIBRARY:\n"
+        "   - Hãy cài gói Microsoft Visual C++ Redistributable 2015-2022 (x64).\n"
+        "====================================================================\n"
+    )
+    if os.path.exists(exe_dist):
+        try:
+            with open(os.path.join(exe_dist, "HUONG_DAN_SU_DUNG.txt"), "w", encoding="utf-8") as gf:
+                gf.write(guide_content)
+        except Exception:
+            pass
 
     with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
         if os.path.exists(exe_dist):
@@ -253,35 +311,43 @@ def main():
 
     print(f"\n📌 Phiên bản hiện tại : v{current_ver}")
     print(f"📌 Lần Build (Build #)  : #{build_num}")
-    print("\n[ LỰA CHỌN PHIÊN BẢN BUILD TIẾP THEO ]")
-    print(" 1. Build Patch Release  (VD: v3.6.0 -> v3.6.1)")
-    print(" 2. Build Minor Release  (VD: v3.6.0 -> v3.7.0)")
-    print(" 3. Build Major Release  (VD: v3.6.0 -> v4.0.0)")
-    print(" 4. Nhập phiên bản tùy chỉnh")
-    print(" 5. Re-build lại phiên bản hiện tại")
 
-    choice = input("\n👉 Nhập lựa chọn (1-5) [Mặc định: 1]: ").strip()
-    if not choice:
-        choice = "1"
+    is_interactive = "--interactive" in sys.argv
+    if is_interactive:
+        print("\n[ LỰA CHỌN PHIÊN BẢN BUILD TIẾP THEO ]")
+        print(" 1. Build Patch Release  (VD: v3.6.0 -> v3.6.1)")
+        print(" 2. Build Minor Release  (VD: v3.6.0 -> v3.7.0)")
+        print(" 3. Build Major Release  (VD: v3.6.0 -> v4.0.0)")
+        print(" 4. Nhập phiên bản tùy chỉnh")
+        print(" 5. Re-build lại phiên bản hiện tại")
 
-    if choice == "1":
-        new_ver = bump_version(current_ver, "patch")
-        build_num += 1
-    elif choice == "2":
-        new_ver = bump_version(current_ver, "minor")
-        build_num += 1
-    elif choice == "3":
-        new_ver = bump_version(current_ver, "major")
-        build_num += 1
-    elif choice == "4":
-        custom_v = input("   Nhập chuỗi phiên bản (VD: 3.6.5): ").strip().lstrip("v")
-        new_ver = custom_v if custom_v else current_ver
-        build_num += 1
-    elif choice == "5":
-        new_ver = current_ver
+        choice = input("\n👉 Nhập lựa chọn (1-5) [Mặc định: 1]: ").strip()
+        if not choice:
+            choice = "1"
+
+        if choice == "1":
+            new_ver = bump_version(current_ver, "patch")
+            build_num += 1
+        elif choice == "2":
+            new_ver = bump_version(current_ver, "minor")
+            build_num += 1
+        elif choice == "3":
+            new_ver = bump_version(current_ver, "major")
+            build_num += 1
+        elif choice == "4":
+            custom_v = input("   Nhập chuỗi phiên bản (VD: 3.6.5): ").strip().lstrip("v")
+            new_ver = custom_v if custom_v else current_ver
+            build_num += 1
+        elif choice == "5":
+            new_ver = current_ver
+        else:
+            new_ver = bump_version(current_ver, "patch")
+            build_num += 1
     else:
+        # Default 1-Click Auto Build (Patch Release)
         new_ver = bump_version(current_ver, "patch")
         build_num += 1
+        print(f"\n⚡ [1-CLICK BUILD] Tự động nâng phiên bản tiếp theo: v{new_ver} (Build #{build_num})")
 
     # Save version info
     info["version"] = new_ver

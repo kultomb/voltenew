@@ -26,7 +26,7 @@ object ImsOverrideManager {
             cmds.add("setprop persist.vendor.radio.volte_ignore_sub 1")
         }
 
-        // OPPO & MediaTek & CMW500 specific props (OPPO A5s & Legacy Android support)
+        // OPPO & MediaTek specific props (OPPO A5s & Legacy Android support)
         cmds.add("setprop persist.sys.oppo.volte 1")
         cmds.add("setprop persist.radio_oppo_ct_volte_support 1")
         cmds.add("setprop persist.radio.oppo_volte_state 1")
@@ -36,7 +36,6 @@ object ImsOverrideManager {
         cmds.add("setprop persist.mtk_ims_support 1")
         cmds.add("setprop persist.mtk_dynamic_ims_support 1")
         cmds.add("setprop persist.vendor.mtk_dynamic_ims_support 1")
-        cmds.add("setprop persist.dbg.cmw500_mode 0")
         cmds.add("setprop persist.radio.voice_domain_pref 2")
         cmds.add("setprop persist.vendor.radio.voice_domain_pref 2")
         cmds.add("setprop persist.vendor.radio.csfb_support 1")
@@ -107,11 +106,11 @@ object ImsOverrideManager {
             cmds.add("am broadcast -a android.telephony.action.CARRIER_CONFIG_CHANGED --ei android.telephony.extra.SUBSCRIPTION_INDEX $sub")
         }
 
-        // MediaTek MT6765 & ColorOS 5.2 Direct IMS & CMW500 & ViLTE Broadcasts
+        // MediaTek MT6765 & ColorOS 5.2 Direct IMS & ViLTE Broadcasts
         cmds.add("am broadcast -a com.mediatek.intent.action.IMS_SETTING --ei enable 1")
         cmds.add("am broadcast -a com.mediatek.ims.ACTION_IMS_SETTING_CHANGED --ei enable 1")
-        cmds.add("am broadcast -a com.mediatek.intent.action.VOLTE_SETTING --ei enable 1 --ei cmw500 1 --ei sim_id 0")
-        cmds.add("am broadcast -a com.mediatek.intent.action.VOLTE_SETTING --ei enable 1 --ei cmw500 1 --ei sim_id 1")
+        cmds.add("am broadcast -a com.mediatek.intent.action.VOLTE_SETTING --ei enable 1 --ei sim_id 0")
+        cmds.add("am broadcast -a com.mediatek.intent.action.VOLTE_SETTING --ei enable 1 --ei sim_id 1")
         cmds.add("am broadcast -a com.mediatek.intent.action.VT_SETTING --ei enable 1")
         cmds.add("am broadcast -a com.oppo.intent.action.VOLTE_STATE_CHANGE --ei state 1")
         cmds.add("am broadcast -a com.oppo.intent.action.OPPO_VOLTE_STATE_CHANGE --ei state 1")
@@ -139,8 +138,6 @@ object ImsOverrideManager {
             cmds.add("settings put $ns config_oppo_volte_notify_stable_bool 1")
             cmds.add("settings put $ns hVolteByCarrier 1")
             cmds.add("settings put $ns KEY_HVOLTE 1")
-            cmds.add("settings put $ns cmw500_setting 1")
-            cmds.add("settings put $ns cmw500_mode_enabled 1")
             cmds.add("settings put $ns vilte_user_enable 1")
         }
 

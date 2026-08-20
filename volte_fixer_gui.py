@@ -79,7 +79,7 @@ class VoLTEFixerApp(ctk.CTk):
         super().__init__()
 
         # Window Configuration & Symmetrical Dual-Window Centering
-        self.title("HBG VoLTE & IMS Fixer ⚡ v3.6.0")
+        self.title("HBG VoLTE & IMS Fixer ⚡ v3.6.1")
         w, h = 1080, 680
         self.update_idletasks()
         screen_w = self.winfo_screenwidth()
@@ -105,7 +105,14 @@ class VoLTEFixerApp(ctk.CTk):
         self.engine = VoLTEEngine()
         self.executor = ThreadPoolExecutor(max_workers=6)
 
-        base_dir = os.path.dirname(os.path.abspath(__file__))
+        base_dir = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
+        icon_path = os.path.join(base_dir, "assets", "app_icon.ico")
+        if os.path.exists(icon_path):
+            try:
+                self.iconbitmap(icon_path)
+            except Exception:
+                pass
+
         self.dex_path = os.path.join(base_dir, "assets", "hbg_volte_fixer.dex")
         if not os.path.exists(self.dex_path):
             self.dex_path = os.path.join(os.path.dirname(base_dir), "core", "assets", "hbg_volte_fixer.dex")
@@ -184,7 +191,7 @@ class VoLTEFixerApp(ctk.CTk):
 
         badge_ver = ctk.CTkLabel(
             title_row,
-            text="v3.6.0 ULTRA",
+            text="v3.6.1 ULTRA",
             font=FONT_LABEL_BOLD,
             text_color=THEME["accent_cyan"],
             fg_color=THEME["bg_inset"],
@@ -665,8 +672,6 @@ class VoLTEFixerApp(ctk.CTk):
         state = "normal" if enabled else "disabled"
         buttons = [
             getattr(self, "btn_all_in_one", None),
-            getattr(self, "btn_cmw500", None),
-            getattr(self, "btn_ims_apn", None),
             getattr(self, "btn_install_apks", None),
             getattr(self, "btn_refresh", None),
             getattr(self, "btn_live_screen", None),
@@ -703,39 +708,11 @@ class VoLTEFixerApp(ctk.CTk):
         res = self.engine.smart_fix_all(dev_id, self.dex_path, self.log)
         self.after(0, lambda: self._on_action_completed(res, "Kích Hoạt VoLTE Tự Động"))
 
-    def action_enable_cmw500(self):
-        """Force-enable CMW500 Lab Test mode and ViLTE on legacy Android."""
-        if not self._check_selected_device():
-            return
-        self.is_working = True
-        self.set_controls_enabled(False)
-        self.set_status("Đang kích hoạt Chế Độ CMW500 Mode & ViLTE Enable...", 0.4)
-        self.executor.submit(self._run_enable_cmw500_thread)
-
-    def _run_enable_cmw500_thread(self):
-        dev_id = self.selected_device_id
-        res = self.engine.enable_cmw500_legacy_fix(dev_id, self.log)
-        self.after(0, lambda: self._on_action_completed(res, "Bật Chế Độ CMW500 Mode & ViLTE"))
-
-    def action_inject_ims_apn(self):
-        """Auto-inject IMS APN profile into Android database."""
-        if not self._check_selected_device():
-            return
-        self.is_working = True
-        self.set_controls_enabled(False)
-        self.set_status("Đang tự động nạp cấu hình APN IMS cho các nhà mạng...", 0.4)
-        self.executor.submit(self._run_inject_ims_apn_thread)
-
-    def _run_inject_ims_apn_thread(self):
-        dev_id = self.selected_device_id
-        res = self.engine.inject_ims_apn(dev_id, self.log)
-        self.after(0, lambda: self._on_action_completed(res, "Nạp Cấu Hình APN IMS"))
-
     def action_install_both_apks(self):
         """Install both Shizuku and Pixel IMS APKs manually onto target Android device in correct order."""
         if not self._check_selected_device():
             return
-        base_dir = os.path.dirname(os.path.abspath(__file__))
+        base_dir = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
         shizuku_path = os.path.join(base_dir, "Shizuku_13.6.0.r1091.b844bc49_APKPure.apk")
         pixel_ims_path = os.path.join(base_dir, "pixel-ims-1-3-2.apk")
 
@@ -820,7 +797,8 @@ class VoLTEFixerApp(ctk.CTk):
         qr_frame = ctk.CTkFrame(dlg, fg_color=THEME["bg_inset"], corner_radius=12, border_width=1, border_color=THEME["border"])
         qr_frame.pack(padx=16, pady=4, fill="both", expand=True)
 
-        qr_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "donate_qr.jpg")
+        base_dir = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
+        qr_path = os.path.join(base_dir, "assets", "donate_qr.jpg")
         if os.path.exists(qr_path):
             try:
                 pil_img = Image.open(qr_path)
