@@ -296,13 +296,13 @@ class VoLTEEngine:
             ("persist.radio.volte.mode", "1"),
             ("persist.vendor.radio.uiccsi", "1"),
             ("persist.vendor.radio.ims_registered", "1"),
-            # Anti-CSFB (Forces Outgoing/Incoming Calls to stay on VoLTE PS Domain instead of falling back to 2G/3G)
+            # VoLTE Preferred Voice Domain & Dual-Mode Fallback Safety (Prevents call stuck at "Đang gọi...")
             ("persist.radio.voice_domain_pref", "2"),
             ("persist.vendor.radio.voice_domain_pref", "2"),
-            ("persist.vendor.radio.csfb_support", "0"),
-            ("persist.radio.csfb_support", "0"),
-            ("persist.vendor.radio.disable_csfb", "1"),
-            ("persist.radio.disable_csfb", "1"),
+            ("persist.vendor.radio.csfb_support", "1"),
+            ("persist.radio.csfb_support", "1"),
+            ("persist.vendor.radio.disable_csfb", "0"),
+            ("persist.radio.disable_csfb", "0"),
             ("persist.vendor.radio.force_ims_call", "1"),
             ("persist.radio.force_ims_call", "1"),
             ("persist.radio.force_on_dc", "1"),
