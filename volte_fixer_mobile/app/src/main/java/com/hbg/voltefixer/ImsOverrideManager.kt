@@ -43,6 +43,8 @@ object ImsOverrideManager {
         cmds.add("setprop persist.radio.csfb_support 1")
         cmds.add("setprop persist.vendor.radio.disable_csfb 0")
         cmds.add("setprop persist.radio.disable_csfb 0")
+        cmds.add("setprop persist.radio.volte_provisioned 1")
+        cmds.add("setprop persist.vendor.radio.volte_provisioned 1")
         cmds.add("setprop persist.ims.simulate 0")
         cmds.add("setprop persist.radio.vilte_downgrade 0")
         cmds.add("setprop persist.radio.volte_downgrade 0")
@@ -54,6 +56,9 @@ object ImsOverrideManager {
         cmds.add("settings put global voice_call_type_sub1 1")
         cmds.add("settings put system voice_call_type 1")
         cmds.add("settings put secure voice_call_type 1")
+        cmds.add("settings put global volte_provisioned 1")
+        cmds.add("settings put secure volte_provisioned 1")
+        cmds.add("settings put system volte_provisioned 1")
 
         // 2. APN IMS Auto-Injection & Multiplexing into Telephony Database
         cmds.add("content update --uri content://telephony/carriers --bind type:s:default,supl,ims --where \"type LIKE '%default%' AND type NOT LIKE '%ims%'\"")
