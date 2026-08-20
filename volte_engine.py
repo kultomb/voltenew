@@ -667,13 +667,10 @@ class VoLTEEngine:
 
         if opened and (not tapped_cmw or not tapped_set):
             if log_cb:
-                log_cb("  ⚡ Thực thi thao tác điều hướng phím mô phỏng...", "info")
-            self.run_command(["shell", "input", "keyevent", "20"], device_id, timeout=2)
-            self.run_command(["shell", "input", "keyevent", "20"], device_id, timeout=2)
-            self.run_command(["shell", "input", "keyevent", "66"], device_id, timeout=2)
+                log_cb("  ℹ Đã mở sẵn màn hình Trình Kỹ Thuật (IMS / VolteSetting). Bạn có thể bấm chọn CMW500 setting và bấm SET thủ công.", "info")
 
         if log_cb:
-            log_cb("🎉 TỰ ĐỘNG CHỌN 'CMW500 SETTING' VÀ BẤM 'SET' HOÀN TẤT!", "success")
+            log_cb("🎉 MỞ MÀN HÌNH KỸ THUẬT MTK/IMS HOÀN TẤT!", "success")
 
         return True
 
