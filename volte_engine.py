@@ -265,7 +265,6 @@ class VoLTEEngine:
             ("persist.radio.oppo_vt_support", "1"),
             ("persist.vendor.radio.oppo_volte_support", "1"),
             ("persist.vendor.radio.oppo_vowifi_support", "1"),
-            ("persist.sys.oppo.operator", "VIETTEL"),
             ("persist.radio.hvolte", "1"),
             ("persist.sys.oppo.hvolte", "1"),
             ("persist.mtk.volte.enable", "1"),
@@ -321,6 +320,13 @@ class VoLTEEngine:
             code, _, _ = self.run_command(["shell", "setprop", prop, val], device_id, timeout=4)
             if code == 0:
                 count += 1
+
+        # Dynamically set operator prop based on active SIM inserted in device (100% Generic & Dynamic)
+        _, sim_alpha, _ = self.run_command(["shell", "getprop", "gsm.sim.operator.alpha"], device_id, timeout=2)
+        if sim_alpha and sim_alpha.strip():
+            op_name = sim_alpha.split(",")[0].strip()
+            if op_name:
+                self.run_command(["shell", "setprop", "persist.sys.oppo.operator", op_name], device_id, timeout=2)
 
         # Set Preferred Network Type quietly via Settings DB & dismiss MTK World Mode UI popup
         net_settings = [
