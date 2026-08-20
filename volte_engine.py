@@ -310,6 +310,13 @@ class VoLTEEngine:
             ("persist.radio.csfb_support", "1"),
             ("persist.vendor.radio.disable_csfb", "0"),
             ("persist.radio.disable_csfb", "0"),
+            # MTK IMS Real Mode & Downgrade Prevention (Disables Simulation Mode & Call Downgrade)
+            ("persist.ims.simulate", "0"),
+            ("persist.radio.vilte_downgrade", "0"),
+            ("persist.radio.volte_downgrade", "0"),
+            ("persist.vendor.radio.downgrade", "0"),
+            ("persist.radio.downgrade_enable", "0"),
+            ("persist.sys.downgrade_enable", "0"),
             ("persist.vendor.radio.force_ims_call", "1"),
             ("persist.radio.force_ims_call", "1"),
             ("persist.radio.force_on_dc", "1"),
