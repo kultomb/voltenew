@@ -449,8 +449,19 @@ class VoLTEEngine:
             time.sleep(0.5)
             self.fix_settings_db(device_id, log_cb)
             time.sleep(0.5)
-            self.enable_cmw500_legacy_fix(device_id, log_cb)
-            time.sleep(0.5)
+
+            # Only run CMW500 UI automation for Legacy Android (SDK < 29 / Android 9.0 or lower)
+            sdk_ver = 0
+            try:
+                sdk_ver = int((info.get("sdk") or "").replace("API", "").strip())
+            except Exception:
+                sdk_ver = 0
+
+            if sdk_ver > 0 and sdk_ver < 29:
+                log_cb("📌 Phát hiện Android đời thấp (SDK < 29): Kích hoạt Chế độ CMW500...", "info")
+                self.enable_cmw500_legacy_fix(device_id, log_cb)
+                time.sleep(0.5)
+
             self.inject_ims_apn(device_id, log_cb)
             time.sleep(0.5)
             self.fix_carrier_config_dex(device_id, dex_path, log_cb)
@@ -557,6 +568,11 @@ class VoLTEEngine:
                 opened = True
                 break
 
+        if not opened:
+            if log_cb:
+                log_cb("  ℹ Thiết bị này không hỗ trợ màn hình Kỹ thuật MediaTek CMW500 UI (Đã áp dụng cờ cắm ngầm ADB).", "info")
+            return False
+
         time.sleep(1.2)
 
         # Dump UI XML hierarchy
@@ -609,7 +625,7 @@ class VoLTEEngine:
                 tapped_set = True
                 time.sleep(0.5)
 
-        if not tapped_cmw or not tapped_set:
+        if opened and (not tapped_cmw or not tapped_set):
             if log_cb:
                 log_cb("  ⚡ Thực thi thao tác điều hướng phím mô phỏng...", "info")
             self.run_command(["shell", "input", "keyevent", "20"], device_id, timeout=2)
