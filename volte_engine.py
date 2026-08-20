@@ -521,18 +521,6 @@ class VoLTEEngine:
             self.fix_settings_db(device_id, log_cb)
             time.sleep(0.5)
 
-            # Only run CMW500 UI automation for Legacy Android (SDK < 29 / Android 9.0 or lower)
-            sdk_ver = 0
-            try:
-                sdk_ver = int((info.get("sdk") or "").replace("API", "").strip())
-            except Exception:
-                sdk_ver = 0
-
-            if sdk_ver > 0 and sdk_ver < 29:
-                log_cb("📌 Phát hiện Android đời thấp (SDK < 29): Kích hoạt Chế độ CMW500...", "info")
-                self.enable_cmw500_legacy_fix(device_id, log_cb)
-                time.sleep(0.5)
-
             self.inject_ims_apn(device_id, log_cb)
             time.sleep(0.5)
             self.fix_carrier_config_dex(device_id, dex_path, log_cb)

@@ -6,14 +6,20 @@ release ZIP archiving, and Git commit/tagging/pushing.
 
 from __future__ import annotations
 
-import os
 import sys
+import os
 import re
 import json
 import shutil
 import zipfile
 import subprocess
 from datetime import datetime
+
+if hasattr(sys.stdout, 'reconfigure'):
+    try:
+        sys.stdout.reconfigure(encoding='utf-8')
+    except Exception:
+        pass
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 VERSION_FILE = os.path.join(BASE_DIR, "version.json")

@@ -79,7 +79,7 @@ class VoLTEFixerApp(ctk.CTk):
         super().__init__()
 
         # Window Configuration & Symmetrical Dual-Window Centering
-        self.title("HBG VoLTE & IMS Fixer ⚡")
+        self.title("HBG VoLTE & IMS Fixer ⚡ v3.6.0")
         w, h = 1080, 680
         self.update_idletasks()
         screen_w = self.winfo_screenwidth()
@@ -184,7 +184,7 @@ class VoLTEFixerApp(ctk.CTk):
 
         badge_ver = ctk.CTkLabel(
             title_row,
-            text="v3.5 ULTRA",
+            text="v3.6.0 ULTRA",
             font=FONT_LABEL_BOLD,
             text_color=THEME["accent_cyan"],
             fg_color=THEME["bg_inset"],
@@ -352,44 +352,9 @@ class VoLTEFixerApp(ctk.CTk):
         )
         self.btn_all_in_one.pack(fill="x", pady=(0, 8))
 
-        # Secondary row with 4 buttons grid
-        grid_sub = ctk.CTkFrame(inner, fg_color="transparent")
-        grid_sub.pack(fill="x")
-        grid_sub.columnconfigure(0, weight=1)
-        grid_sub.columnconfigure(1, weight=1)
-
-        self.btn_cmw500 = ctk.CTkButton(
-            grid_sub,
-            text="🧪 BẬT CMW500 & ViLTE (CỔ)",
-            font=FONT_BTN_GRID,
-            fg_color=THEME["bg_inset"],
-            hover_color=THEME["bg_card_hover"],
-            border_width=1,
-            border_color=THEME["border"],
-            text_color=THEME["accent_cyan"],
-            height=36,
-            corner_radius=8,
-            command=self.action_enable_cmw500
-        )
-        self.btn_cmw500.grid(row=0, column=0, padx=(0, 4), pady=(0, 4), sticky="ew")
-
-        self.btn_ims_apn = ctk.CTkButton(
-            grid_sub,
-            text="📡 NẠP APN IMS TỰ ĐỘNG",
-            font=FONT_BTN_GRID,
-            fg_color=THEME["bg_inset"],
-            hover_color=THEME["bg_card_hover"],
-            border_width=1,
-            border_color=THEME["border"],
-            text_color=THEME["accent_cyan"],
-            height=36,
-            corner_radius=8,
-            command=self.action_inject_ims_apn
-        )
-        self.btn_ims_apn.grid(row=0, column=1, padx=(4, 0), pady=(0, 4), sticky="ew")
-
+        # Secondary row with 1 clean full-width button
         self.btn_install_apks = ctk.CTkButton(
-            grid_sub,
+            inner,
             text="📦 CÀI ĐẶT BỘ ỨNG DỤNG SHIZUKU & PIXEL IMS",
             font=FONT_BTN_GRID,
             fg_color=THEME["bg_inset"],
@@ -397,11 +362,11 @@ class VoLTEFixerApp(ctk.CTk):
             border_width=1,
             border_color=THEME["border"],
             text_color=THEME["accent_cyan"],
-            height=36,
+            height=38,
             corner_radius=8,
             command=self.action_install_both_apks
         )
-        self.btn_install_apks.grid(row=1, column=0, columnspan=2, pady=(2, 0), sticky="ew")
+        self.btn_install_apks.pack(fill="x")
 
     def _build_progress_bar(self, parent):
         prog_card = ctk.CTkFrame(parent, fg_color=THEME["bg_card"], corner_radius=12, border_width=1, border_color=THEME["border"])
