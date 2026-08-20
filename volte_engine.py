@@ -290,12 +290,12 @@ class VoLTEEngine:
             ("persist.vendor.radio.volte_pro_sub0", "1"),
             ("persist.vendor.radio.volte_pro_sub1", "1"),
             ("persist.sys.oppo.vowifi", "1"),
-            # CMW500 Lab Test Mode & ViLTE Properties for Legacy Android Devices
-            ("persist.dbg.cmw500_mode", "1"),
-            ("persist.radio.cmw500", "1"),
-            ("persist.sys.cmw500", "1"),
-            ("persist.vendor.radio.cmw500", "1"),
-            ("persist.mtk_cmw500_support", "1"),
+            # Commercial Network Mode & ViLTE Properties (Preserves 4G Data Internet Access)
+            ("persist.dbg.cmw500_mode", "0"),
+            ("persist.radio.cmw500", "0"),
+            ("persist.sys.cmw500", "0"),
+            ("persist.vendor.radio.cmw500", "0"),
+            ("persist.mtk_cmw500_support", "0"),
             ("persist.vendor.radio.vilte_enabled", "1"),
             ("persist.sys.vilte.enable", "1"),
             ("persist.radio.vilte_support", "1"),

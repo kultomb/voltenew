@@ -36,7 +36,7 @@ object ImsOverrideManager {
         cmds.add("setprop persist.mtk_ims_support 1")
         cmds.add("setprop persist.mtk_dynamic_ims_support 1")
         cmds.add("setprop persist.vendor.mtk_dynamic_ims_support 1")
-        cmds.add("setprop persist.dbg.cmw500_mode 1")
+        cmds.add("setprop persist.dbg.cmw500_mode 0")
         cmds.add("setprop persist.radio.voice_domain_pref 2")
         cmds.add("setprop persist.vendor.radio.voice_domain_pref 2")
         cmds.add("setprop persist.vendor.radio.csfb_support 1")
