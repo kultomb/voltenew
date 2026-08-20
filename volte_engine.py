@@ -296,6 +296,16 @@ class VoLTEEngine:
             ("persist.radio.volte.mode", "1"),
             ("persist.vendor.radio.uiccsi", "1"),
             ("persist.vendor.radio.ims_registered", "1"),
+            # Anti-CSFB (Forces Outgoing/Incoming Calls to stay on VoLTE PS Domain instead of falling back to 2G/3G)
+            ("persist.radio.voice_domain_pref", "2"),
+            ("persist.vendor.radio.voice_domain_pref", "2"),
+            ("persist.vendor.radio.csfb_support", "0"),
+            ("persist.radio.csfb_support", "0"),
+            ("persist.vendor.radio.disable_csfb", "1"),
+            ("persist.radio.disable_csfb", "1"),
+            ("persist.vendor.radio.force_ims_call", "1"),
+            ("persist.radio.force_ims_call", "1"),
+            ("persist.radio.force_on_dc", "1"),
         ]
 
         count = 0
@@ -304,9 +314,18 @@ class VoLTEEngine:
             if code == 0:
                 count += 1
 
-        # Set Preferred Network Type to LTE/GSM/WCDMA (9, 10, 20)
+        # Set Preferred Network Type to LTE/GSM/WCDMA (9, 10, 20) & Broadcast IMS Voice intents
         for net_mode in ["9", "10", "20"]:
             self.run_command(["shell", "cmd", "phone", "set-preferred-network-type", net_mode], device_id, timeout=3)
+
+        broadcasts = [
+            ["shell", "am", "broadcast", "-a", "com.mediatek.intent.action.IMS_SETTING", "--ei", "enable", "1"],
+            ["shell", "am", "broadcast", "-a", "com.mediatek.intent.action.VOLTE_SETTING", "--ei", "enable", "1", "--ei", "sim_id", "0"],
+            ["shell", "am", "broadcast", "-a", "com.mediatek.intent.action.VOLTE_SETTING", "--ei", "enable", "1", "--ei", "sim_id", "1"],
+            ["shell", "am", "broadcast", "-a", "com.oppo.intent.action.VOLTE_SETTING", "--ei", "enable", "1"],
+        ]
+        for bcmd in broadcasts:
+            self.run_command(bcmd, device_id, timeout=3)
 
         if log_cb:
             log_cb(f"✓ Đã thiết lập thành công cấu hình cho thiết bị ({count} tham số)!", "success")
@@ -326,6 +345,11 @@ class VoLTEEngine:
             ("global", "oppo_vowifi_enable", "1"),
             ("system", "volte_call", "1"),
             ("global", "volte_call", "1"),
+            ("global", "voice_call_type", "1"),
+            ("global", "voice_call_type_sub0", "1"),
+            ("global", "voice_call_type_sub1", "1"),
+            ("system", "voice_call_type", "1"),
+            ("secure", "voice_call_type", "1"),
             ("global", "mobivolte_enable", "1"),
             ("global", "carrier_volte_available_bool", "1"),
             ("global", "wfc_ims_enabled", "1"),
@@ -335,6 +359,10 @@ class VoLTEEngine:
             ("system", "volte_vt_enabled", "1"),
             ("global", "enhanced_4g_mode_enabled", "1"),
             ("system", "enhanced_4g_mode_enabled", "1"),
+            ("global", "enhanced_4g_mode_enabled_sub0", "1"),
+            ("global", "enhanced_4g_mode_enabled_sub1", "1"),
+            ("system", "enhanced_4g_mode_enabled_sub0", "1"),
+            ("system", "enhanced_4g_mode_enabled_sub1", "1"),
             # CMW500 Test Mode & ViLTE Settings Database Injection
             ("global", "cmw500_setting", "1"),
             ("global", "cmw500_mode_enabled", "1"),
