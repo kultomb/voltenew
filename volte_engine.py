@@ -517,8 +517,108 @@ class VoLTEEngine:
         for bcmd in broadcasts:
             self.run_command(bcmd, device_id, timeout=3)
 
+        # Perform Automated Screen Click on "CMW500 setting" & "Set" button in EngineerMode UI
+        self.auto_click_cmw500_in_engineer_mode(device_id, log_cb)
+
         if log_cb:
-            log_cb("✓ Đã bật thành công Chế Độ CMW500 Mode & ViLTE Enable trên thiết bị!", "success")
+            log_cb("✓ Đã bật & tự động chọn 'CMW500 setting' + Bấm 'SET' thành công trên thiết bị!", "success")
+        return True
+
+    def auto_click_cmw500_in_engineer_mode(self, device_id: str, log_cb: Optional[Callable[[str, str], None]] = None) -> bool:
+        """
+        Automates UI interaction in MediaTek / OPPO EngineerMode VolteSetting screen:
+        1. Launches VolteSetting activity.
+        2. Dumps UI XML hierarchy.
+        3. Automatically taps 'CMW500 setting' radio button.
+        4. Taps the corresponding 'Set' button to commit setting to modem.
+        """
+        if log_cb:
+            log_cb("📱 [Auto-Click EngineerMode] Đang mở VolteSetting & Tự động gạt công tắc 'CMW500 setting'...", "info")
+
+        # Wake screen & unlock
+        self.run_command(["shell", "input", "keyevent", "224"], device_id, timeout=2)
+        self.run_command(["shell", "wm", "dismiss-keyguard"], device_id, timeout=2)
+
+        # Activities to launch
+        activities = [
+            ["shell", "am", "start", "-n", "com.mediatek.engineermode/.volte.VolteSetting"],
+            ["shell", "am", "start", "-f", "0x14000000", "-n", "com.mediatek.engineermode/.volte.VolteSetting"],
+            ["shell", "am", "start", "-n", "com.mediatek.engineermode/.ims.ImsActivity"],
+            ["shell", "am", "start", "-f", "0x14000000", "-n", "com.oppo.engineermode/.volte.VolteSetting"],
+            ["shell", "am", "start", "-f", "0x14000000", "-n", "com.oplus.engineermode/.volte.VolteSetting"],
+            ["shell", "am", "start", "-n", "com.mediatek.engineermode/.EngineerMode"],
+            ["shell", "am", "start", "-n", "com.oppo.engineermode/.EngineerMode"],
+        ]
+
+        opened = False
+        for cmd in activities:
+            code, out, err = self.run_command(cmd, device_id, timeout=4)
+            if self._is_am_start_success(code, out, err):
+                opened = True
+                break
+
+        time.sleep(1.2)
+
+        # Dump UI XML hierarchy
+        self.run_command(["shell", "uiautomator", "dump", "/sdcard/window_dump.xml"], device_id, timeout=6)
+        _, xml_content, _ = self.run_command(["shell", "cat", "/sdcard/window_dump.xml"], device_id, timeout=4)
+
+        tapped_cmw = False
+        tapped_set = False
+
+        if xml_content and "bounds=" in xml_content:
+            import re
+            pattern = re.compile(r'<node[^>]*text="([^"]*)"[^>]*bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"', re.IGNORECASE)
+            matches = pattern.findall(xml_content)
+
+            cmw_y = -1
+            # 1. Look for CMW500 setting radio button
+            for text, x1, y1, x2, y2 in matches:
+                if "cmw500" in text.lower():
+                    cx = (int(x1) + int(x2)) // 2
+                    cy = (int(y1) + int(y2)) // 2
+                    cmw_y = cy
+                    if log_cb:
+                        log_cb(f"  ✓ Phát hiện 'CMW500 setting' tại ({cx}, {cy}). Đang tự động bấm...", "success")
+                    self.run_command(["shell", "input", "tap", str(cx), str(cy)], device_id, timeout=3)
+                    tapped_cmw = True
+                    time.sleep(0.6)
+                    break
+
+            # 2. Look for "Set" button under VOLTE Setting
+            set_candidates = []
+            for text, x1, y1, x2, y2 in matches:
+                if text.strip().lower() == "set":
+                    cx = (int(x1) + int(x2)) // 2
+                    cy = (int(y1) + int(y2)) // 2
+                    set_candidates.append((cx, cy))
+
+            if set_candidates:
+                best_set = None
+                if cmw_y > 0:
+                    for scx, scy in set_candidates:
+                        if scy > cmw_y:
+                            best_set = (scx, scy)
+                            break
+                if not best_set:
+                    best_set = set_candidates[0]
+
+                if log_cb:
+                    log_cb(f"  ✓ Đang tự động bấm nút 'SET' tại ({best_set[0]}, {best_set[1]}) để kích hoạt...", "success")
+                self.run_command(["shell", "input", "tap", str(best_set[0]), str(best_set[1])], device_id, timeout=3)
+                tapped_set = True
+                time.sleep(0.5)
+
+        if not tapped_cmw or not tapped_set:
+            if log_cb:
+                log_cb("  ⚡ Thực thi thao tác điều hướng phím mô phỏng...", "info")
+            self.run_command(["shell", "input", "keyevent", "20"], device_id, timeout=2)
+            self.run_command(["shell", "input", "keyevent", "20"], device_id, timeout=2)
+            self.run_command(["shell", "input", "keyevent", "66"], device_id, timeout=2)
+
+        if log_cb:
+            log_cb("🎉 TỰ ĐỘNG CHỌN 'CMW500 SETTING' VÀ BẤM 'SET' HOÀN TẤT!", "success")
+
         return True
 
     def inject_ims_apn(self, device_id: str, log_cb: Optional[Callable[[str, str], None]] = None) -> bool:
