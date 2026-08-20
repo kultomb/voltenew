@@ -80,7 +80,7 @@ class VoLTEFixerApp(ctk.CTk):
 
         # Window Configuration
         self.title("HBG VoLTE & IMS Fixer ⚡ (Professional Android Controller & VoLTE Auto-Fix)")
-        self.geometry("820x560")
+        self.geometry("890x560")
         self.resizable(False, False)
 
         # CustomTkinter Appearance
@@ -237,7 +237,7 @@ class VoLTEFixerApp(ctk.CTk):
 
         self.btn_donate = ctk.CTkButton(
             btn_frame,
-            text="❤️ Donate 🍼",
+            text="❤️ DONATE ❤️ 🍼",
             font=FONT_LABEL_BOLD,
             fg_color="#f43f5e",
             hover_color="#e11d48",
@@ -380,19 +380,6 @@ class VoLTEFixerApp(ctk.CTk):
             command=self.action_install_both_apks
         )
         self.btn_install_apks.grid(row=1, column=0, columnspan=2, pady=(2, 0), sticky="ew")
-
-        self.btn_donate_hero = ctk.CTkButton(
-            grid_sub,
-            text="❤️ DONATE - HỘP SỮA CHO CON GÁI TÁC GIẢ 🍼",
-            font=FONT_BTN_GRID,
-            fg_color="#f43f5e",
-            hover_color="#e11d48",
-            text_color="#ffffff",
-            height=36,
-            corner_radius=8,
-            command=self.open_donate_dialog
-        )
-        self.btn_donate_hero.grid(row=2, column=0, columnspan=2, pady=(6, 0), sticky="ew")
 
     def _build_progress_bar(self, parent):
         prog_card = ctk.CTkFrame(parent, fg_color=THEME["bg_card"], corner_radius=12, border_width=1, border_color=THEME["border"])
