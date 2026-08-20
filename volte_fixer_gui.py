@@ -80,14 +80,14 @@ class VoLTEFixerApp(ctk.CTk):
 
         # Window Configuration & Symmetrical Dual-Window Centering
         self.title("HBG VoLTE & IMS Fixer ⚡")
-        w, h = 890, 560
+        w, h = 980, 560
         self.update_idletasks()
         screen_w = self.winfo_screenwidth()
         screen_h = self.winfo_screenheight()
 
-        # Calculate position to center the combined pair (Main App 890px + 14px Gap + ~380px Live Screen = 1284px total)
-        combined_w = 1284
-        if screen_w >= 1300:
+        # Calculate position to center the combined pair (Main App 980px + 10px Gap + ~350px Live Screen = 1340px total)
+        combined_w = 1340
+        if screen_w >= 1350:
             cx = (screen_w - combined_w) // 2
         else:
             cx = (screen_w - w) // 2
@@ -251,7 +251,24 @@ class VoLTEFixerApp(ctk.CTk):
             corner_radius=8,
             command=self.open_donate_dialog
         )
-        self.btn_donate.pack(side="left")
+        self.btn_donate.pack(side="left", padx=(0, 6))
+
+        def open_hangho_web():
+            import webbrowser
+            webbrowser.open("https://hangho.com/")
+
+        self.btn_hangho = ctk.CTkButton(
+            btn_frame,
+            text="🛒 HangHo.com (PM Quản Lý)",
+            font=FONT_LABEL_BOLD,
+            fg_color="#10b981",
+            hover_color="#059669",
+            text_color="#ffffff",
+            height=32,
+            corner_radius=8,
+            command=open_hangho_web
+        )
+        self.btn_hangho.pack(side="left")
 
     def _build_device_card(self, parent):
         card = ctk.CTkFrame(parent, fg_color=THEME["bg_card"], corner_radius=12, border_width=1, border_color=THEME["border"])
@@ -468,13 +485,14 @@ class VoLTEFixerApp(ctk.CTk):
             tool_y = self.winfo_y()
             tool_w = self.winfo_width()
             tool_h = self.winfo_height()
-            # Account for Windows OS titlebar height (~31px offset)
-            target_x = tool_x + tool_w + 8
-            target_y = max(0, tool_y - 31)
+            # Align top title bar and match outer height
+            target_x = tool_x + tool_w + 10
+            target_y = tool_y
+            scrcpy_height = max(300, tool_h - 38)
         except Exception:
             target_x = 900
             target_y = 100
-            tool_h = 560
+            scrcpy_height = 522
 
         cmd = [
             self.scrcpy_bin,
@@ -483,7 +501,7 @@ class VoLTEFixerApp(ctk.CTk):
             "--window-title", f"Màn Hình Android Live — [{device_id}]",
             f"--window-x={target_x}",
             f"--window-y={target_y}",
-            f"--window-height={tool_h}",
+            f"--window-height={scrcpy_height}",
             "--always-on-top"
         ]
 
@@ -841,7 +859,24 @@ class VoLTEFixerApp(ctk.CTk):
             text="Ngân hàng: MB Bank (VietQR Nạp 24/7) — Chúc bạn ngày tốt lành! ✨",
             font=FONT_LABEL,
             text_color=THEME["text_muted"]
-        ).pack(pady=(4, 12))
+        ).pack(pady=(4, 6))
+
+        def open_hangho_dlg():
+            import webbrowser
+            webbrowser.open("https://hangho.com/")
+
+        btn_hangho_dlg = ctk.CTkButton(
+            dlg,
+            text="🛒 Dùng Thử PM Quản Lý Bán Hàng (HangHo.com) ⚡",
+            font=FONT_LABEL_BOLD,
+            fg_color="#10b981",
+            hover_color="#059669",
+            text_color="#ffffff",
+            height=36,
+            corner_radius=8,
+            command=open_hangho_dlg
+        )
+        btn_hangho_dlg.pack(fill="x", padx=20, pady=(2, 12))
 
     def open_wireless_adb_dialog(self):
         """Open popup modal dialog for Wireless ADB pairing & connecting."""

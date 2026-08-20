@@ -96,6 +96,11 @@ class MainActivity : AppCompatActivity() {
             .setMessage("Nếu ứng dụng đã giúp bạn kích hoạt VoLTE thành công và gọi thoại mượt mà, tiếc gì một hộp sữa nho nhỏ cho bé đúng không ạ? 🥰\n\nMọi ủng hộ VietQR MB Bank của bạn là động lực rất lớn để tác giả tiếp tục nâng cấp phần mềm hoàn toàn miễn phí!")
             .setView(imageView)
             .setPositiveButton("Cảm ơn bạn! ❤️") { dialog, _ -> dialog.dismiss() }
+            .setNeutralButton("🛒 Dùng Thử HangHo.com") { _, _ ->
+                try {
+                    startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("https://hangho.com/")))
+                } catch (e: Exception) {}
+            }
             .show()
     }
 
