@@ -461,17 +461,20 @@ class VoLTEFixerApp(ctk.CTk):
 
         self.stop_scrcpy_stream()
 
-        # Dynamically calculate window position to open Scrcpy balanced on the RIGHT side of main tool window
+        # Dynamically calculate window position & height to open Scrcpy perfectly aligned with main tool window
         try:
             self.update_idletasks()
             tool_x = self.winfo_x()
             tool_y = self.winfo_y()
             tool_w = self.winfo_width()
-            target_x = tool_x + tool_w + 14
-            target_y = max(0, tool_y)
+            tool_h = self.winfo_height()
+            # Account for Windows OS titlebar height (~31px offset)
+            target_x = tool_x + tool_w + 8
+            target_y = max(0, tool_y - 31)
         except Exception:
-            target_x = 850
+            target_x = 900
             target_y = 100
+            tool_h = 560
 
         cmd = [
             self.scrcpy_bin,
@@ -480,6 +483,7 @@ class VoLTEFixerApp(ctk.CTk):
             "--window-title", f"Màn Hình Android Live — [{device_id}]",
             f"--window-x={target_x}",
             f"--window-y={target_y}",
+            f"--window-height={tool_h}",
             "--always-on-top"
         ]
 
