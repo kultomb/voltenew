@@ -80,14 +80,14 @@ class VoLTEFixerApp(ctk.CTk):
 
         # Window Configuration & Symmetrical Dual-Window Centering
         self.title("HBG VoLTE & IMS Fixer ⚡")
-        w, h = 980, 560
+        w, h = 1040, 620
         self.update_idletasks()
         screen_w = self.winfo_screenwidth()
         screen_h = self.winfo_screenheight()
 
-        # Calculate position to center the combined pair (Main App 980px + 10px Gap + ~350px Live Screen = 1340px total)
-        combined_w = 1340
-        if screen_w >= 1350:
+        # Calculate position to center the combined pair (Main App 1040px + 10px Gap + ~360px Live Screen = 1410px total)
+        combined_w = 1410
+        if screen_w >= 1420:
             cx = (screen_w - combined_w) // 2
         else:
             cx = (screen_w - w) // 2
@@ -227,7 +227,7 @@ class VoLTEFixerApp(ctk.CTk):
 
         self.btn_live_screen = ctk.CTkButton(
             btn_frame,
-            text="📱 Màn Hình Live (60 FPS)",
+            text="📱 Live Screen 60 FPS",
             font=FONT_LABEL_BOLD,
             fg_color=THEME["bg_card_hover"],
             hover_color=THEME["border"],
@@ -242,7 +242,7 @@ class VoLTEFixerApp(ctk.CTk):
 
         self.btn_donate = ctk.CTkButton(
             btn_frame,
-            text="❤️ DONATE ❤️ 🍼",
+            text="❤️ DONATE 🍼",
             font=FONT_LABEL_BOLD,
             fg_color="#f43f5e",
             hover_color="#e11d48",
@@ -259,7 +259,7 @@ class VoLTEFixerApp(ctk.CTk):
 
         self.btn_hangho = ctk.CTkButton(
             btn_frame,
-            text="🛒 HangHo.com (PM Quản Lý)",
+            text="🛒 HangHo.com (PM Bán Hàng)",
             font=FONT_LABEL_BOLD,
             fg_color="#10b981",
             hover_color="#059669",
@@ -485,14 +485,14 @@ class VoLTEFixerApp(ctk.CTk):
             tool_y = self.winfo_y()
             tool_w = self.winfo_width()
             tool_h = self.winfo_height()
-            # Align top title bar and match outer height
+            # Align top title bar and match outer height exactly
             target_x = tool_x + tool_w + 10
             target_y = tool_y
-            scrcpy_height = max(300, tool_h - 38)
+            scrcpy_height = max(350, tool_h - 38)
         except Exception:
-            target_x = 900
+            target_x = 1050
             target_y = 100
-            scrcpy_height = 522
+            scrcpy_height = 582
 
         cmd = [
             self.scrcpy_bin,
