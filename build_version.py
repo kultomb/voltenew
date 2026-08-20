@@ -263,9 +263,6 @@ def main():
     # 3. Create Release ZIP
     zip_path = build_release_zip(new_ver, build_num)
 
-    # 4. Git Commit & Tag & Push
-    git_commit_and_tag(new_ver, build_num)
-
     print("\n" + "=" * 60)
     print(f"🎉 HOÀN THÀNH TOÀN BỘ TIẾN TRÌNH BUILD PHIÊN BẢN v{new_ver} (Build #{build_num})!")
     print(f"📦 File Release ZIP: {zip_path}")

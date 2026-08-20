@@ -10,4 +10,5 @@ volte_fixer_mobile/.gradle/
 volte_fixer_mobile/.idea/
 dist/
 releases/
+build_tmp/
 *.spec
