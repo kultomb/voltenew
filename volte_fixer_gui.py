@@ -79,7 +79,7 @@ class VoLTEFixerApp(ctk.CTk):
         super().__init__()
 
         # Window Configuration
-        self.title("HBG VoLTE & IMS Fixer ⚡ (Professional Android Controller & VoLTE Auto-Fix)")
+        self.title("HBG VoLTE & IMS Fixer ⚡")
         w, h = 890, 560
         self.update_idletasks()
         screen_w = self.winfo_screenwidth()
@@ -186,14 +186,6 @@ class VoLTEFixerApp(ctk.CTk):
             pady=2
         )
         badge_ver.pack(side="left", padx=(8, 0))
-
-        sub_lbl = ctk.CTkLabel(
-            title_frame,
-            text="Công cụ kích hoạt VoLTE & IMS 1-Click tự động chuyên nghiệp cho Android",
-            font=FONT_SUBTITLE,
-            text_color=THEME["text_secondary"]
-        )
-        sub_lbl.pack(anchor="w", pady=(2, 0))
 
         btn_frame = ctk.CTkFrame(inner, fg_color="transparent")
         btn_frame.pack(side="right")

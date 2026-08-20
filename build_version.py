@@ -82,8 +82,8 @@ def update_source_code_versions(ver_str: str, build_num: int):
         )
         # Update window title
         content = re.sub(
-            r'self\.title\("HBG VoLTE & IMS Fixer ⚡ \([^"]*\)"\)',
-            f'self.title("HBG VoLTE & IMS Fixer ⚡ v{ver_str} (Build #{build_num})")',
+            r'self\.title\("HBG VoLTE & IMS Fixer ⚡[^"]*"\)',
+            f'self.title("HBG VoLTE & IMS Fixer ⚡ v{ver_str}")',
             content
         )
         with open(GUI_FILE, "w", encoding="utf-8") as f:
