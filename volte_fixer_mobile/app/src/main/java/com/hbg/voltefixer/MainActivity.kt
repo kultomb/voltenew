@@ -102,8 +102,8 @@ class MainActivity : AppCompatActivity() {
                 log(msg)
             }
 
-            log("🎉 HOÀN THÀNH: Đã phát bộ lệnh ép VoLTE siêu mạnh (Root/Shizuku/Reflection)!")
-            binding.tvStatus.text = "● Trạng thái: Đã ép cờ VoLTE thành công!"
+            log("🎉 HOÀN THÀNH: Đã phát bộ lệnh kích hoạt VoLTE siêu mạnh (Root/Shizuku/Reflection)!")
+            binding.tvStatus.text = "● Trạng thái: Đã kích hoạt VoLTE thành công!"
             binding.btnFixAll.isEnabled = true
         }
     }

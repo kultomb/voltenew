@@ -183,7 +183,7 @@ class VoLTEFixerApp(ctk.CTk):
 
         sub_lbl = ctk.CTkLabel(
             title_frame,
-            text="Công cụ ép bật cờ VoLTE & IMS 1-Click tự động chuyên nghiệp cho Android",
+            text="Công cụ kích hoạt VoLTE & IMS 1-Click tự động chuyên nghiệp cho Android",
             font=FONT_SUBTITLE,
             text_color=THEME["text_secondary"]
         )
@@ -543,7 +543,7 @@ class VoLTEFixerApp(ctk.CTk):
         self.device_option.configure(values=options)
         self.device_option.set(options[0])
         self.lbl_model.configure(text=model_name)
-        self.set_status("Sẵn sàng thực hiện ép cờ VoLTE.", 1.0)
+        self.set_status("Sẵn sàng kích hoạt VoLTE.", 1.0)
         self.log(f"✓ Đã kết nối ADB thiết bị: {model_name} [{dev_id}]", "success")
 
         # Fetch deep info in background without blocking ADB loop

@@ -222,9 +222,9 @@ class VoLTEEngine:
         _, mtk_prop, _ = self.run_command(["shell", "getprop", "persist.mtk.volte.enable"], device_id, timeout=3)
         
         if ims_prop == "1" or oppo_prop == "1" or mtk_prop == "1":
-            info["ims_status"] = "Đã ép cờ VoLTE (OVR=1)"
+            info["ims_status"] = "Đã kích hoạt VoLTE"
         else:
-            info["ims_status"] = "Chưa ép cờ"
+            info["ims_status"] = "Chưa kích hoạt"
 
         return info
 
