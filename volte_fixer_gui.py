@@ -80,7 +80,13 @@ class VoLTEFixerApp(ctk.CTk):
 
         # Window Configuration
         self.title("HBG VoLTE & IMS Fixer ⚡ (Professional Android Controller & VoLTE Auto-Fix)")
-        self.geometry("890x560")
+        w, h = 890, 560
+        self.update_idletasks()
+        screen_w = self.winfo_screenwidth()
+        screen_h = self.winfo_screenheight()
+        cx = (screen_w - w) // 2
+        cy = (screen_h - h) // 2
+        self.geometry(f"{w}x{h}+{max(0, cx)}+{max(0, cy)}")
         self.resizable(False, False)
 
         # CustomTkinter Appearance
@@ -762,12 +768,31 @@ class VoLTEFixerApp(ctk.CTk):
         self.engine.check_ims_diagnostics(self.selected_device_id, self.log)
 
     def open_donate_dialog(self):
-        """Open popup modal dialog displaying VietQR code and daughter milk call-to-action."""
+        """Open popup modal dialog displaying VietQR code and daughter milk call-to-action centered on screen."""
         from PIL import Image
 
         dlg = ctk.CTkToplevel(self)
         dlg.title("❤️ Ủng Hộ Tác Giả — Hộp Sữa Cho Con Gái 🍼")
-        dlg.geometry("480x590")
+        
+        w, h = 480, 590
+        dlg.update_idletasks()
+        self.update_idletasks()
+        screen_w = dlg.winfo_screenwidth()
+        screen_h = dlg.winfo_screenheight()
+
+        parent_x = self.winfo_x()
+        parent_y = self.winfo_y()
+        parent_w = self.winfo_width()
+        parent_h = self.winfo_height()
+
+        cx = parent_x + (parent_w - w) // 2
+        cy = parent_y + (parent_h - h) // 2
+
+        if cx < 0 or cy < 0 or cx > screen_w - 50 or cy > screen_h - 50:
+            cx = (screen_w - w) // 2
+            cy = (screen_h - h) // 2
+
+        dlg.geometry(f"{w}x{h}+{max(0, cx)}+{max(0, cy)}")
         dlg.resizable(False, False)
         dlg.grab_set()
         dlg.configure(fg_color=THEME["bg_app"])
@@ -819,7 +844,26 @@ class VoLTEFixerApp(ctk.CTk):
         """Open popup modal dialog for Wireless ADB pairing & connecting."""
         dlg = ctk.CTkToplevel(self)
         dlg.title("📶 Kết Nối ADB Wireless (Gỡ Lỗi Wi-Fi)")
-        dlg.geometry("460x400")
+        
+        w, h = 460, 400
+        dlg.update_idletasks()
+        self.update_idletasks()
+        screen_w = dlg.winfo_screenwidth()
+        screen_h = dlg.winfo_screenheight()
+
+        parent_x = self.winfo_x()
+        parent_y = self.winfo_y()
+        parent_w = self.winfo_width()
+        parent_h = self.winfo_height()
+
+        cx = parent_x + (parent_w - w) // 2
+        cy = parent_y + (parent_h - h) // 2
+
+        if cx < 0 or cy < 0 or cx > screen_w - 50 or cy > screen_h - 50:
+            cx = (screen_w - w) // 2
+            cy = (screen_h - h) // 2
+
+        dlg.geometry(f"{w}x{h}+{max(0, cx)}+{max(0, cy)}")
         dlg.resizable(False, False)
         dlg.grab_set()
 
