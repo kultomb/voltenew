@@ -52,7 +52,8 @@ object ImsOverrideManager {
         cmds.add("settings put system voice_call_type 1")
         cmds.add("settings put secure voice_call_type 1")
 
-        // 2. APN IMS Auto-Injection into Telephony Database
+        // 2. APN IMS Auto-Injection & Multiplexing into Telephony Database
+        cmds.add("content update --uri content://telephony/carriers --bind type:s:default,supl,ims --where \"type LIKE '%default%' AND type NOT LIKE '%ims%'\"")
         val vnOperators = listOf(
             "45204" to ("452" to "04"), // Viettel
             "45202" to ("452" to "02"), // VinaPhone
@@ -63,7 +64,7 @@ object ImsOverrideManager {
         )
         for ((num, pair) in vnOperators) {
             val (mcc, mnc) = pair
-            cmds.add("content insert --uri content://telephony/carriers --bind name:s:\"IMS Services\" --bind apn:s:ims --bind type:s:ims --bind numeric:s:$num --bind mcc:s:$mcc --bind mnc:s:$mnc --bind bearer_bitmask:s:14 --bind protocol:s:IPv4v6 --bind roaming_protocol:s:IPv4v6 --bind current:i:1")
+            cmds.add("content insert --uri content://telephony/carriers --bind name:s:\"IMS Services\" --bind apn:s:ims --bind type:s:ims,default,supl --bind numeric:s:$num --bind mcc:s:$mcc --bind mnc:s:$mnc --bind bearer_bitmask:s:14 --bind protocol:s:IPv4v6 --bind roaming_protocol:s:IPv4v6 --bind current:i:1")
         }
 
         // 3. CarrierConfig overrides matching Pixel IMS

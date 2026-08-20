@@ -693,13 +693,23 @@ class VoLTEEngine:
 
         operator_name = MCC_MNC_MAP.get(mccmnc, "Nhà mạng Việt Nam")
 
-        # Build content insert commands for APN IMS
+        # 1. Primary Strategy: Update existing default Internet APNs to include 'ims' (e.g. default,supl,ims)
+        # This forces modems to allow VoLTE SIP REGISTER directly over the primary LTE bearer for Viettel/VinaPhone/MobiFone
+        update_default_apn_cmd = [
+            "shell", "content", "update",
+            "--uri", "content://telephony/carriers",
+            "--bind", "type:s:default,supl,ims",
+            "--where", "type LIKE '%default%' AND type NOT LIKE '%ims%'"
+        ]
+        self.run_command(update_default_apn_cmd, device_id, timeout=5)
+
+        # 2. Secondary Strategy: Build dedicated APN IMS profile insert commands
         insert_cmd = [
             "shell", "content", "insert",
             "--uri", "content://telephony/carriers",
             "--bind", "name:s:IMS Services",
             "--bind", "apn:s:ims",
-            "--bind", "type:s:ims",
+            "--bind", "type:s:ims,default,supl",
             "--bind", f"numeric:s:{mccmnc}",
             "--bind", f"mcc:s:{mcc}",
             "--bind", f"mnc:s:{mnc}",
@@ -728,7 +738,7 @@ class VoLTEEngine:
                     "--uri", "content://telephony/carriers",
                     "--bind", "name:s:IMS Services",
                     "--bind", "apn:s:ims",
-                    "--bind", "type:s:ims",
+                    "--bind", "type:s:ims,default,supl",
                     "--bind", f"numeric:s:{num}",
                     "--bind", f"mcc:s:{v_mcc}",
                     "--bind", f"mnc:s:{v_mnc}",
@@ -740,8 +750,8 @@ class VoLTEEngine:
                 self.run_command(fallback_cmd, device_id, timeout=3)
 
         if log_cb:
-            log_cb(f"✓ Đã nạp thành công APN IMS cho SIM {operator_name} (MCC/MNC: {mccmnc})!", "success")
-            log_cb("💡 Lưu ý: Nếu máy yêu cầu mở Cài đặt APN, hãy chọn APN tên 'IMS Services' (APN: ims, Kiểu: ims).", "info")
+            log_cb(f"✓ Đã nạp & ghép nối cấu hình APN IMS (default,supl,ims) cho SIM {operator_name} (MCC/MNC: {mccmnc})!", "success")
+            log_cb("💡 Mẹo: Đã tự động thêm 'ims' vào APN mặc định. Nếu máy cần chỉnh tay, kiểm tra Kiểu APN có chữ 'ims' (Ví dụ: default,supl,ims).", "info")
 
         return True
 
