@@ -288,6 +288,10 @@ class VoLTEEngine:
             ("persist.vendor.radio.vilte_enabled", "1"),
             ("persist.sys.vilte.enable", "1"),
             ("persist.radio.vilte_support", "1"),
+            ("persist.radio.calls.on.ims", "1"),
+            ("persist.radio.volte.mode", "1"),
+            ("persist.vendor.radio.uiccsi", "1"),
+            ("persist.vendor.radio.ims_registered", "1"),
         ]
 
         count = 0
@@ -295,6 +299,10 @@ class VoLTEEngine:
             code, _, _ = self.run_command(["shell", "setprop", prop, val], device_id, timeout=4)
             if code == 0:
                 count += 1
+
+        # Set Preferred Network Type to LTE/GSM/WCDMA (9, 10, 20)
+        for net_mode in ["9", "10", "20"]:
+            self.run_command(["shell", "cmd", "phone", "set-preferred-network-type", net_mode], device_id, timeout=3)
 
         if log_cb:
             log_cb(f"✓ Đã thiết lập thành công cấu hình cho thiết bị ({count} tham số)!", "success")

@@ -37,13 +37,15 @@ object ImsOverrideManager {
         cmds.add("setprop persist.mtk_dynamic_ims_support 1")
         cmds.add("setprop persist.vendor.mtk_dynamic_ims_support 1")
         cmds.add("setprop persist.dbg.cmw500_mode 1")
-        cmds.add("setprop persist.radio.cmw500 1")
-        cmds.add("setprop persist.sys.cmw500 1")
-        cmds.add("setprop persist.vendor.radio.cmw500 1")
-        cmds.add("setprop persist.mtk_cmw500_support 1")
-        cmds.add("setprop persist.vendor.radio.vilte_enabled 1")
-        cmds.add("setprop persist.sys.vilte.enable 1")
-        cmds.add("setprop persist.radio.vilte_support 1")
+        cmds.add("setprop persist.radio.calls.on.ims 1")
+        cmds.add("setprop persist.sys.oppo.carrier.volte 1")
+        cmds.add("setprop persist.radio.volte.mode 1")
+        cmds.add("setprop persist.radio.volte_support 1")
+        cmds.add("setprop persist.vendor.radio.uiccsi 1")
+        cmds.add("setprop persist.vendor.radio.ims_registered 1")
+        cmds.add("cmd phone set-preferred-network-type 9")
+        cmds.add("cmd phone set-preferred-network-type 10")
+        cmds.add("cmd phone set-preferred-network-type 20")
 
         // 2. APN IMS Auto-Injection into Telephony Database
         val vnOperators = listOf(
