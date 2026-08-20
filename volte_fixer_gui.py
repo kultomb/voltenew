@@ -516,8 +516,7 @@ class VoLTEFixerApp(ctk.CTk):
             "--window-title", f"Màn Hình Android Live — [{device_id}]",
             f"--window-x={target_x}",
             f"--window-y={target_y}",
-            f"--window-height={scrcpy_height}",
-            "--always-on-top"
+            f"--window-height={scrcpy_height}"
         ]
 
         try:
