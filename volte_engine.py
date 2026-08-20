@@ -314,9 +314,19 @@ class VoLTEEngine:
             if code == 0:
                 count += 1
 
-        # Set Preferred Network Type to LTE/GSM/WCDMA (9, 10, 20) & Broadcast IMS Voice intents
-        for net_mode in ["9", "10", "20"]:
-            self.run_command(["shell", "cmd", "phone", "set-preferred-network-type", net_mode], device_id, timeout=3)
+        # Set Preferred Network Type quietly via Settings DB & dismiss MTK World Mode UI popup
+        net_settings = [
+            ("global", "preferred_network_mode", "10,10"),
+            ("global", "preferred_network_mode1", "10"),
+            ("global", "preferred_network_mode2", "10"),
+            ("global", "user_preferred_network_mode", "10"),
+        ]
+        for ns, key, val in net_settings:
+            self.run_command(["shell", "settings", "put", ns, key, val], device_id, timeout=2)
+
+        # Set phone preferred network type and dismiss any MTK World Mode popup
+        self.run_command(["shell", "cmd", "phone", "set-preferred-network-type", "10"], device_id, timeout=3)
+        self.run_command(["shell", "input", "keyevent", "4"], device_id, timeout=2) # Dismiss World Mode screen popup
 
         broadcasts = [
             ["shell", "am", "broadcast", "-a", "com.mediatek.intent.action.IMS_SETTING", "--ei", "enable", "1"],
