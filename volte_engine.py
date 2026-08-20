@@ -441,7 +441,6 @@ class VoLTEEngine:
 
             elif info.get("is_oppo") or info.get("is_mtk"):
                 log_cb("📌 Phát hiện OPPO / Realme / Chipset MTK: Đang tự động nạp cấu hình hệ thống chuyên biệt...", "warning")
-                log_cb("💡 LƯU Ý MÁY OPPO: Nếu chưa hiện công tắc thời gian thực, hãy TẮT 'Giám sát quyền' trong Tùy chọn nhà phát triển!", "warning")
 
             elif info.get("is_vivo"):
                 log_cb("📱 Phát hiện Vivo / iQOO: Đang tự động nạp cấu hình giao diện hệ thống...", "info")
@@ -464,8 +463,7 @@ class VoLTEEngine:
 
             if info.get("is_oppo") or info.get("is_mtk"):
                 log_cb("💡 HƯỚNG DẪN DÀNH CHO OPPO / REALME / MTK:", "warning")
-                log_cb("   1. Nhấn nút '🔓 TẮT GIÁM SÁT QUYỀN (OPPO)' nếu công tắc chưa xuất hiện.", "warning")
-                log_cb("   2. Hoặc nhấn '🔧 Mở Trình Kỹ Thuật (EngineerMode)' -> Telephony -> IMS -> VoLTE Setting -> Bấm SET.", "warning")
+                log_cb("   • Bạn có thể nhấn nút '🧪 BẬT CMW500 & ViLTE (CỔ)' hoặc '🔧 Mở Trình Kỹ Thuật (EngineerMode)' -> Telephony -> IMS -> VoLTE Setting -> Bấm SET.", "info")
 
             return True
         except Exception as e:

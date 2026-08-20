@@ -353,24 +353,9 @@ class VoLTEFixerApp(ctk.CTk):
         )
         self.btn_ims_apn.grid(row=0, column=1, padx=(4, 0), pady=(0, 4), sticky="ew")
 
-        self.btn_dev_options = ctk.CTkButton(
-            grid_sub,
-            text="🔓 TẮT GIÁM SÁT QUYỀN (OPPO)",
-            font=FONT_BTN_GRID,
-            fg_color=THEME["bg_inset"],
-            hover_color=THEME["bg_card_hover"],
-            border_width=1,
-            border_color=THEME["border"],
-            text_color=THEME["warning"],
-            height=36,
-            corner_radius=8,
-            command=self.action_open_dev_options
-        )
-        self.btn_dev_options.grid(row=1, column=0, padx=(0, 4), sticky="ew")
-
         self.btn_install_apks = ctk.CTkButton(
             grid_sub,
-            text="📦 CÀI SHIZUKU & PIXEL IMS",
+            text="📦 CÀI ĐẶT BỘ ỨNG DỤNG SHIZUKU & PIXEL IMS",
             font=FONT_BTN_GRID,
             fg_color=THEME["bg_inset"],
             hover_color=THEME["bg_card_hover"],
@@ -381,7 +366,7 @@ class VoLTEFixerApp(ctk.CTk):
             corner_radius=8,
             command=self.action_install_both_apks
         )
-        self.btn_install_apks.grid(row=1, column=1, padx=(4, 0), sticky="ew")
+        self.btn_install_apks.grid(row=1, column=0, columnspan=2, pady=(2, 0), sticky="ew")
 
     def _build_progress_bar(self, parent):
         prog_card = ctk.CTkFrame(parent, fg_color=THEME["bg_card"], corner_radius=12, border_width=1, border_color=THEME["border"])
@@ -663,7 +648,6 @@ class VoLTEFixerApp(ctk.CTk):
             getattr(self, "btn_all_in_one", None),
             getattr(self, "btn_cmw500", None),
             getattr(self, "btn_ims_apn", None),
-            getattr(self, "btn_dev_options", None),
             getattr(self, "btn_install_apks", None),
             getattr(self, "btn_refresh", None),
             getattr(self, "btn_live_screen", None),
@@ -685,16 +669,6 @@ class VoLTEFixerApp(ctk.CTk):
             messagebox.showwarning("Cảnh báo", "Vui lòng kết nối và bật ADB Debugging trên điện thoại Android trước!")
             return False
         return True
-
-    def action_open_dev_options(self):
-        """Directly open Developer Options on Android phone screen."""
-        if not self._check_selected_device():
-            return
-        self.executor.submit(self._run_open_dev_options_thread)
-
-    def _run_open_dev_options_thread(self):
-        dev_id = self.selected_device_id
-        self.engine.open_developer_options(dev_id, self.log)
 
     def action_fix_all_in_one(self):
         """Single Smart Auto-Fix Button action for ALL brands."""
