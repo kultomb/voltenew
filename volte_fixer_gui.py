@@ -79,7 +79,7 @@ class VoLTEFixerApp(ctk.CTk):
         super().__init__()
 
         # Window Configuration & Symmetrical Dual-Window Centering
-        self.title("HBG VoLTE & IMS Fixer ⚡ v3.6.3")
+        self.title("HBG VoLTE & IMS Fixer ⚡ v3.6.4")
         w, h = 1080, 680
         self.update_idletasks()
         screen_w = self.winfo_screenwidth()

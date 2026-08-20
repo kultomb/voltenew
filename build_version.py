@@ -75,17 +75,11 @@ def bump_version(current_ver: str, bump_type: str) -> str:
 def update_source_code_versions(ver_str: str, build_num: int):
     print(f"\n📝 Đang tự động cập nhật phiên bản 'v{ver_str}' (Build #{build_num}) vào toàn bộ mã nguồn...")
 
-    # 1. Update volte_fixer_gui.py (badge_ver & window title)
+    # 1. Update volte_fixer_gui.py (window title)
     if os.path.exists(GUI_FILE):
         with open(GUI_FILE, "r", encoding="utf-8") as f:
             content = f.read()
 
-        # Update badge_ver text
-        content = re.sub(
-            r'text="v\d+\.\d+[^"]*"',
-            f'text="v{ver_str} ULTRA"',
-            content
-        )
         # Update window title
         content = re.sub(
             r'self\.title\("HBG VoLTE & IMS Fixer ⚡[^"]*"\)',
