@@ -467,6 +467,31 @@ class VoLTEFixerApp(ctk.CTk):
         self.txt_log.pack(fill="both", expand=True)
         self.txt_log.configure(state="disabled")
 
+    def get_outer_window_bounds(self):
+        """Get exact visible screen bounds (left, top, width, height) of main window on Windows 10/11."""
+        self.update_idletasks()
+        try:
+            import ctypes
+            from ctypes import wintypes
+            hwnd = int(self.wm_frame(), 16)
+            rect = wintypes.RECT()
+            # DWMWA_EXTENDED_FRAME_BOUNDS (9) gets the exact visible window bounds on Windows 10/11
+            ctypes.windll.dwmapi.DwmGetWindowAttribute(
+                wintypes.HWND(hwnd),
+                wintypes.DWORD(9),
+                ctypes.byref(rect),
+                ctypes.sizeof(rect)
+            )
+            w = rect.right - rect.left
+            h = rect.bottom - rect.top
+            if w > 100 and h > 100:
+                return rect.left, rect.top, w, h
+        except Exception:
+            pass
+
+        # Fallback to standard Tkinter geometry
+        return self.winfo_x(), self.winfo_y(), self.winfo_width(), self.winfo_height()
+
     # ---------------------------------------------------------------------------
     # Scrcpy Native Hardware Streaming Engine (Standalone Native Window Mode)
     # ---------------------------------------------------------------------------
@@ -479,20 +504,10 @@ class VoLTEFixerApp(ctk.CTk):
         self.stop_scrcpy_stream()
 
         # Dynamically calculate window position & height to open Scrcpy perfectly aligned with main tool window
-        try:
-            self.update_idletasks()
-            tool_x = self.winfo_x()
-            tool_y = self.winfo_y()
-            tool_w = self.winfo_width()
-            tool_h = self.winfo_height()
-            # Align top title bar and match outer height exactly
-            target_x = tool_x + tool_w + 10
-            target_y = tool_y
-            scrcpy_height = max(350, tool_h - 38)
-        except Exception:
-            target_x = 1050
-            target_y = 100
-            scrcpy_height = 582
+        left, top, width, height = self.get_outer_window_bounds()
+        target_x = left + width + 10
+        target_y = top
+        scrcpy_height = max(350, height - 38)
 
         cmd = [
             self.scrcpy_bin,
