@@ -176,13 +176,15 @@ def build_release_zip(ver_str: str, build_num: int) -> str:
 
     with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
         if os.path.exists(exe_dist):
-            for root, _, files in os.walk(exe_dist):
+            for root, dirs, files in os.walk(exe_dist):
+                # Explicitly exclude source code and build cache directories
+                dirs[:] = [d for d in dirs if d not in ["volte_fixer_mobile", ".gradle", ".idea", "__pycache__", "build"]]
                 for file in files:
                     full_path = os.path.join(root, file)
                     rel_path = os.path.relpath(full_path, exe_dist)
                     zf.write(full_path, os.path.join(f"HBG_VoLTE_Fixer_v{ver_str}", rel_path))
         else:
-            # Fallback package structure
+            # Fallback package structure (Only include compiled PC release files)
             files_to_include = [
                 "Run_VoLTE_Fixer.bat",
                 "volte_fixer_gui.py",
@@ -203,13 +205,15 @@ def build_release_zip(ver_str: str, build_num: int) -> str:
 
             for d in dirs_to_include:
                 dp = os.path.join(BASE_DIR, d)
-                if os.path.exists(dp):
-                    for root, _, files in os.walk(dp):
+                if os.path.exists(dp) and d != "volte_fixer_mobile":
+                    for root, dirs, files in os.walk(dp):
+                        dirs[:] = [subd for subd in dirs if subd not in ["__pycache__", ".gradle"]]
                         for file in files:
                             full_path = os.path.join(root, file)
                             rel_path = os.path.relpath(full_path, BASE_DIR)
                             zf.write(full_path, os.path.join(folder_in_zip, rel_path))
 
+    print(f"  ✓ Đã loại bỏ hoàn toàn thư mục nguồn Android Studio ('volte_fixer_mobile') khỏi bộ đóng gói.")
     print(f"🎉 TẠO FILE RELEASE ZIP THÀNH CÔNG: {zip_path}")
     return zip_path
 
