@@ -11,8 +11,8 @@ android {
         applicationId = "com.hbg.voltefixer"
         minSdk = 26
         targetSdk = 34
-        versionCode = 2
-        versionName = "3.6.1"
+        versionCode = 3
+        versionName = "3.6.2"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

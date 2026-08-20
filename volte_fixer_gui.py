@@ -79,7 +79,7 @@ class VoLTEFixerApp(ctk.CTk):
         super().__init__()
 
         # Window Configuration & Symmetrical Dual-Window Centering
-        self.title("HBG VoLTE & IMS Fixer ⚡ v3.6.1")
+        self.title("HBG VoLTE & IMS Fixer ⚡ v3.6.2")
         w, h = 1080, 680
         self.update_idletasks()
         screen_w = self.winfo_screenwidth()
@@ -191,7 +191,7 @@ class VoLTEFixerApp(ctk.CTk):
 
         badge_ver = ctk.CTkLabel(
             title_row,
-            text="v3.6.1 ULTRA",
+            text="v3.6.2 ULTRA",
             font=FONT_LABEL_BOLD,
             text_color=THEME["accent_cyan"],
             fg_color=THEME["bg_inset"],
