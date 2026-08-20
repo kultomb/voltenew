@@ -117,11 +117,10 @@ def update_source_code_versions(ver_str: str, build_num: int):
 
 
 def run_pyinstaller_build(ver_str: str) -> bool:
-    print("\n📦 Bắt đầu tiến trình đóng gói PyInstaller Standalone Executable (EXE)...")
+    print("\n📦 Đang đóng gói PyInstaller 1-File Standalone Executable (EXE duy nhất)...")
 
     dist_dir = os.path.join(BASE_DIR, "dist")
     build_dir = os.path.join(BASE_DIR, "build")
-    spec_file = os.path.join(BASE_DIR, "HBG_VoLTE_Fixer.spec")
 
     # Clean old build dirs
     for d in [dist_dir, build_dir]:
@@ -130,20 +129,15 @@ def run_pyinstaller_build(ver_str: str) -> bool:
                 shutil.rmtree(d)
             except Exception:
                 pass
-    if os.path.exists(spec_file):
-        try:
-            os.remove(spec_file)
-        except Exception:
-            pass
 
     icon_path = os.path.join(BASE_DIR, "assets", "app_icon.ico")
     icon_flag = [f"--icon={icon_path}"] if os.path.exists(icon_path) else []
 
-    # 1. Build Onedir Package
-    cmd_onedir = [
+    # Build 1 Single Standalone Executable (Fastest & 1-File Only)
+    cmd = [
         sys.executable, "-m", "PyInstaller",
         "--noconfirm",
-        "--onedir",
+        "--onefile",
         "--windowed",
         "--name=HBG_VoLTE_Fixer",
         *icon_flag,
@@ -155,47 +149,17 @@ def run_pyinstaller_build(ver_str: str) -> bool:
         "volte_fixer_gui.py"
     ]
 
-    print("  [1/2] Đang đóng gói bản thư mục (onedir)...")
-    res1 = subprocess.run(cmd_onedir, cwd=BASE_DIR)
-
-    # 2. Build Single Standalone Executable
-    cmd_onefile = [
-        sys.executable, "-m", "PyInstaller",
-        "--noconfirm",
-        "--onefile",
-        "--windowed",
-        "--name=HBG_VoLTE_Fixer_Standalone",
-        *icon_flag,
-        f"--add-data=adb{os.path.pathsep}adb",
-        f"--add-data=assets{os.path.pathsep}assets",
-        f"--add-data=scrcpy{os.path.pathsep}scrcpy",
-        f"--add-data=Shizuku_13.6.0.r1091.b844bc49_APKPure.apk{os.path.pathsep}.",
-        f"--add-data=pixel-ims-1-3-2.apk{os.path.pathsep}.",
-        "volte_fixer_gui.py"
-    ]
-
-    print("  [2/2] Đang đóng gói bản 1-File độc lập (onefile)...")
-    res2 = subprocess.run(cmd_onefile, cwd=BASE_DIR)
-
-    standalone_src = os.path.join(dist_dir, "HBG_VoLTE_Fixer_Standalone.exe")
-    onedir_target = os.path.join(dist_dir, "HBG_VoLTE_Fixer", "HBG_VoLTE_Fixer_Standalone.exe")
-
-    if os.path.exists(standalone_src) and os.path.exists(os.path.dirname(onedir_target)):
-        try:
-            shutil.copy2(standalone_src, onedir_target)
-        except Exception:
-            pass
-
-    if res1.returncode == 0 or res2.returncode == 0:
-        print("  ✓ Đóng gói PyInstaller EXE thành công!")
+    res = subprocess.run(cmd, cwd=BASE_DIR)
+    if res.returncode == 0:
+        print("  ✓ Đóng gói file HBG_VoLTE_Fixer.exe duy nhất thành công!")
         return True
     else:
-        print("  ⚠ Cảnh báo: Đóng gói PyInstaller thất bại (Sẽ dùng bộ launcher script fallback).")
+        print("  ⚠ Cảnh báo: Đóng gói PyInstaller thất bại.")
         return False
 
 
 def build_release_zip(ver_str: str, build_num: int) -> str:
-    print("\n🗂 Đang tạo tệp nén Release ZIP hoàn chỉnh cho phiên bản...")
+    print("\n🗂 Đang tạo tệp phát hành...")
     os.makedirs(RELEASES_DIR, exist_ok=True)
 
     zip_name = f"HBG_VoLTE_Fixer_v{ver_str}_Build{build_num:03d}.zip"
@@ -207,72 +171,13 @@ def build_release_zip(ver_str: str, build_num: int) -> str:
         except Exception:
             pass
 
-    exe_dist = os.path.join(BASE_DIR, "dist", "HBG_VoLTE_Fixer")
-
-    # Generate HUONG_DAN_SU_DUNG.txt inside distribution folder
-    guide_content = (
-        "====================================================================\n"
-        "           HBG VoLTE & IMS Fixer — LƯU Ý KHI SỬ DỤNG\n"
-        "====================================================================\n\n"
-        "1. NÊN DÙNG BẢN: HBG_VoLTE_Fixer_Standalone.exe (Bản 1 File Độc Lập)\n"
-        "   - Bạn có thể kéo duy nhất 1 file này ra Desktop hoặc copy đi bất kỳ đâu.\n"
-        "   - Bấm mở chạy ngay không bao giờ báo lỗi thiếu thư mục _internal.\n\n"
-        "2. NẾU CHẠY BẢN: HBG_VoLTE_Fixer.exe (Bản Thư Mục)\n"
-        "   - BẮT BUỘC phải Giải Nén (Extract All) toàn bộ tệp ZIP vào 1 thư mục.\n"
-        "   - Luôn giữ file HBG_VoLTE_Fixer.exe nằm chung với thư mục _internal.\n"
-        "   - KHÔNG kéo riêng file HBG_VoLTE_Fixer.exe ra ngoài Desktop mà thiếu _internal!\n\n"
-        "3. NẾU MÁY KHÁC BÁO LỖI MISSING DLL / LOADLIBRARY:\n"
-        "   - Hãy cài gói Microsoft Visual C++ Redistributable 2015-2022 (x64).\n"
-        "====================================================================\n"
-    )
-    if os.path.exists(exe_dist):
-        try:
-            with open(os.path.join(exe_dist, "HUONG_DAN_SU_DUNG.txt"), "w", encoding="utf-8") as gf:
-                gf.write(guide_content)
-        except Exception:
-            pass
+    exe_file = os.path.join(BASE_DIR, "dist", "HBG_VoLTE_Fixer.exe")
 
     with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
-        if os.path.exists(exe_dist):
-            for root, dirs, files in os.walk(exe_dist):
-                # Explicitly exclude source code and build cache directories
-                dirs[:] = [d for d in dirs if d not in ["volte_fixer_mobile", ".gradle", ".idea", "__pycache__", "build"]]
-                for file in files:
-                    full_path = os.path.join(root, file)
-                    rel_path = os.path.relpath(full_path, exe_dist)
-                    zf.write(full_path, os.path.join(f"HBG_VoLTE_Fixer_v{ver_str}", rel_path))
-        else:
-            # Fallback package structure (Only include compiled PC release files)
-            files_to_include = [
-                "Run_VoLTE_Fixer.bat",
-                "volte_fixer_gui.py",
-                "volte_engine.py",
-                "VolteFixer.java",
-                "classes.dex",
-                "Shizuku_13.6.0.r1091.b844bc49_APKPure.apk",
-                "pixel-ims-1-3-2.apk",
-                "hbg-volte-fixer-v1.apk"
-            ]
-            dirs_to_include = ["adb", "assets", "scrcpy"]
+        if os.path.exists(exe_file):
+            zf.write(exe_file, "HBG_VoLTE_Fixer.exe")
 
-            folder_in_zip = f"HBG_VoLTE_Fixer_v{ver_str}"
-            for f in files_to_include:
-                fp = os.path.join(BASE_DIR, f)
-                if os.path.exists(fp):
-                    zf.write(fp, os.path.join(folder_in_zip, f))
-
-            for d in dirs_to_include:
-                dp = os.path.join(BASE_DIR, d)
-                if os.path.exists(dp) and d != "volte_fixer_mobile":
-                    for root, dirs, files in os.walk(dp):
-                        dirs[:] = [subd for subd in dirs if subd not in ["__pycache__", ".gradle"]]
-                        for file in files:
-                            full_path = os.path.join(root, file)
-                            rel_path = os.path.relpath(full_path, BASE_DIR)
-                            zf.write(full_path, os.path.join(folder_in_zip, rel_path))
-
-    print(f"  ✓ Đã loại bỏ hoàn toàn thư mục nguồn Android Studio ('volte_fixer_mobile') khỏi bộ đóng gói.")
-    print(f"🎉 TẠO FILE RELEASE ZIP THÀNH CÔNG: {zip_path}")
+    print(f"🎉 TẠO FILE RELEASE THÀNH CÔNG: {zip_path}")
     return zip_path
 
 

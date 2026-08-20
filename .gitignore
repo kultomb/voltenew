@@ -8,4 +8,6 @@ build/
 .idea/
 volte_fixer_mobile/.gradle/
 volte_fixer_mobile/.idea/
-volte_fixer_mobile/app/build/
+dist/
+releases/
+*.spec
