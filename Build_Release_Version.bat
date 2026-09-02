@@ -7,7 +7,7 @@ echo ====================================================================
 echo.
 
 cd /d "%~dp0"
-python build_version.py
+python build_exe_release.py
 
 if %ERRORLEVEL% NEQ 0 (
     echo.

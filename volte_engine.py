@@ -9,6 +9,7 @@ from __future__ import annotations
 import os
 import sys
 import subprocess
+import shutil
 import time
 import zipfile
 import tempfile
@@ -73,9 +74,11 @@ class VoLTEEngine:
 
     @property
     def adb_path(self) -> str:
+        if self._adb_path and os.path.exists(self._adb_path):
+            return self._adb_path
         if self.dm and self.dm.adb_path:
             return self.dm.adb_path
-        return self._adb_path
+        return "adb"
 
     def refresh(self) -> Tuple[bool, str]:
         """Refresh device status — 100% parity with HBGAdBlocker DeviceManager."""
@@ -99,7 +102,7 @@ class VoLTEEngine:
         else:
             full_cmd = args
 
-        if self.dm:
+        if self.dm and args != ["devices"]:
             out, err, code = self.dm.run(full_cmd, timeout=timeout)
             return code, out, err
 
@@ -123,31 +126,25 @@ class VoLTEEngine:
 
     def get_devices(self) -> List[Dict[str, str]]:
         """Get connected devices list."""
-        if self.dm:
-            ok, _ = self.dm.refresh()
-            if ok and self.dm.serial:
-                return [{
-                    "id": self.dm.serial,
-                    "model": self.dm.device_model or "Android Device",
-                    "product": ""
-                }]
-
-        code, out, _ = self.run_command(["devices"], timeout=5)
-        if code != 0 or not out:
+        try:
+            cmd = [self.adb_path, "devices"]
+            kwargs = {"capture_output": True, "text": True, "timeout": 15}
+            if os.name == "nt":
+                kwargs["creationflags"] = subprocess.CREATE_NO_WINDOW
+            res = subprocess.run(cmd, **kwargs)
+            devices = []
+            for line in (res.stdout or "").splitlines():
+                parts = line.strip().split()
+                if len(parts) >= 2 and parts[1] == "device":
+                    devices.append({
+                        "id": parts[0],
+                        "model": "OPPO A31",
+                        "product": ""
+                    })
+            return devices
+        except Exception as e:
+            print(f"[DEBUG GET_DEVICES ERROR] {e}")
             return []
-
-        devices = []
-        lines = [x.strip() for x in out.splitlines()[1:] if x.strip()]
-        for line in lines:
-            parts = line.split()
-            if len(parts) >= 2 and parts[1] == "device":
-                dev_id = parts[0]
-                devices.append({
-                    "id": dev_id,
-                    "model": "Android Device",
-                    "product": ""
-                })
-        return devices
 
     def get_device_info(self, device_id: str) -> Dict[str, str]:
         """Fetch detailed specs and SIM operator status for target device."""
@@ -272,6 +269,8 @@ class VoLTEEngine:
             ("persist.mtk_ims_support", "1"),
             ("persist.mtk_dynamic_ims_support", "1"),
             ("persist.vendor.mtk_dynamic_ims_support", "1"),
+            ("persist.vendor.ims.op.config", "1"),
+            ("persist.vendor.mtk_ims_op_config", "1"),
             ("persist.sys.oem.volte", "1"),
             ("persist.sys.oppo.region", "VN"),
             ("persist.radio.volte_state", "1"),
@@ -347,9 +346,8 @@ class VoLTEEngine:
         for ns, key, val in net_settings:
             self.run_command(["shell", "settings", "put", ns, key, val], device_id, timeout=2)
 
-        # Set phone preferred network type and dismiss any MTK World Mode popup
+        # Set phone preferred network type quietly
         self.run_command(["shell", "cmd", "phone", "set-preferred-network-type", "10"], device_id, timeout=3)
-        self.run_command(["shell", "input", "keyevent", "4"], device_id, timeout=2) # Dismiss World Mode screen popup
 
         broadcasts = [
             ["shell", "am", "broadcast", "-a", "com.mediatek.intent.action.IMS_SETTING", "--ei", "enable", "1"],
@@ -832,6 +830,47 @@ class VoLTEEngine:
 
         return self.open_radio_info_menu(device_id, log_cb)
 
+    def launch_secret_code(self, device_id: str, code_str: str, log_cb: Optional[Callable[[str, str], None]] = None) -> bool:
+        """Launch ANY Secret Code (*#*#4636#*#*, *#800#, *#801#, *#808#, *#*#3646633#*#*, etc.) directly on phone."""
+        if log_cb:
+            log_cb(f"🚀 Đang tự động kích hoạt mã bí mật [{code_str}] lên điện thoại qua ADB...", "info")
+
+        # Wake up screen & dismiss keyguard
+        self.run_command(["shell", "input", "keyevent", "224"], device_id, timeout=2)
+        self.run_command(["shell", "wm", "dismiss-keyguard"], device_id, timeout=2)
+
+        raw_num = code_str.replace("*", "").replace("#", "")
+
+        if "4636" in raw_num:
+            return self.open_radio_info_menu(device_id, log_cb)
+        elif "3646633" in raw_num or "899" in raw_num or "808" in raw_num or "801" in raw_num or "800" in raw_num:
+            return self.open_mtk_engineer_menu(device_id, log_cb)
+        elif "86583" in raw_num:
+            return self.open_xiaomi_volte_toggle(device_id, log_cb)
+        elif "0011" in raw_num:
+            return self.open_samsung_servicemode(device_id, log_cb)
+
+        # Universal Secret Code Intent & Broadcast Dispatch
+        self.run_command(["shell", "am", "broadcast", "-a", "android.telephony.action.SECRET_CODE", "-d", f"secret_code://{raw_num}"], device_id, timeout=3)
+        self.run_command(["shell", "am", "broadcast", "-a", "android.provider.Telephony.SECRET_CODE", "-d", f"android_secret_code://{raw_num}"], device_id, timeout=3)
+
+        # Dial Pad Auto Typing Fallback
+        dial_cmds = [
+            ["shell", "am", "start", "-f", "0x14000000", "-a", "android.intent.action.DIAL"],
+            ["shell", "am", "start", "-f", "0x14000000", "-p", "com.google.android.dialer", "-a", "android.intent.action.DIAL"],
+            ["shell", "am", "start", "-f", "0x14000000", "-p", "com.coloros.dialer", "-a", "android.intent.action.DIAL"],
+            ["shell", "am", "start", "-f", "0x14000000", "-p", "com.oplus.dialer", "-a", "android.intent.action.DIAL"],
+        ]
+        for dcmd in dial_cmds:
+            self.run_command(dcmd, device_id, timeout=2)
+
+        time.sleep(0.5)
+        self.run_command(["shell", "input", "text", code_str], device_id, timeout=4)
+
+        if log_cb:
+            log_cb(f"✓ Đã gõ mở thành công mã [{code_str}] trên điện thoại!", "success")
+        return True
+
     def check_ims_diagnostics(self, device_id: str, log_cb: Callable[[str, str], None]) -> None:
         """Run diagnostics on VoLTE status and print technician cheat sheet."""
         log_cb("🔍 Đang kiểm tra chi tiết trạng thái VoLTE & Mã Kích Hoạt...", "info")
@@ -1018,19 +1057,9 @@ class VoLTEEngine:
             for key, val in global_settings:
                 self.run_command(["shell", "settings", "put", ns, key, val], device_id, timeout=2)
 
-        target_apps = [
-            "com.android.settings",
-            "com.coloros.wirelesssettings",
-            "com.oplus.wirelesssettings",
-            "com.samsung.android.networksettings",
-            "com.miui.securitycenter",
-            "com.android.phone",
-        ]
-        for app in target_apps:
-            self.run_command(["shell", "am", "force-stop", app], device_id, timeout=2)
-
+        # Send carrier config notification without force-stopping Settings app (prevents exiting Settings screen)
         if log_cb:
-            log_cb("✓ Đã nạp thành công CarrierConfig & reset ứng dụng Cài Đặt để hiển thị công tắc!", "success")
+            log_cb("✓ Đã nạp thành công CarrierConfig & kích hoạt cờ VoLTE hệ thống!", "success")
         return True
 
     def unlock_oem_adb_restrictions(self, device_id: str, log_cb: Optional[Callable[[str, str], None]] = None) -> bool:
@@ -1357,5 +1386,77 @@ class VoLTEEngine:
             if log_cb:
                 log_cb(f"⚠ Lỗi khi chuyển {mode_desc}: {out or err}", "warning")
             return False, out or err
+
+    def launch_secret_code(self, device_id: str, secret_code: str, log_cb: Optional[Callable[[str, str], None]] = None) -> bool:
+        """Launch an Android secret dial code directly via broadcast or direct OEM activity without touching dialer UI."""
+        print(f"[DEBUG LAUNCH SECRET CODE DIRECT] Device: {device_id}, Code: {secret_code}")
+        if log_cb:
+            log_cb(f"⚡ Đang kích hoạt chế độ mã bí mật {secret_code}...", "info")
+
+        digits = secret_code.replace("*", "").replace("#", "").strip()
+
+        # 1. Direct OEM Activity Launchers (Silent & Professional Direct Launch)
+        oem_activities = {
+            "4636": [
+                ["shell", "am", "start", "-n", "com.android.settings/.RadioInfo"],
+                ["shell", "am", "start", "-a", "android.intent.action.MAIN", "-n", "com.android.settings/.Settings$TestingSettingsActivity"],
+            ],
+            "800": [
+                ["shell", "am", "start", "-n", "com.oppo.engineermode/.manualtest.modeltest.ModelTestImpl"],
+                ["shell", "am", "start", "-n", "com.oplus.engineermode/.Engineermode"],
+                ["shell", "am", "start", "-n", "com.mediatek.engineermode/.EngineerMode"],
+            ],
+            "801": [
+                ["shell", "am", "start", "-n", "com.oppo.engineermode/.EngineersTool"],
+            ],
+            "808": [
+                ["shell", "am", "start", "-n", "com.oppo.engineermode/.EngineerMode"],
+            ],
+            "36446337": [
+                ["shell", "am", "start", "-n", "com.oppo.engineermode/.EngineerMode"],
+            ],
+            "3646633": [
+                ["shell", "am", "start", "-n", "com.mediatek.engineermode/.EngineerMode"],
+                ["shell", "am", "start", "-n", "com.mediatek.engineermode/.MobileRadioInfo"],
+            ],
+            "86583": [
+                ["shell", "settings", "put", "global", "carrier_volte_available_bool", "1"],
+                ["shell", "setprop", "persist.sys.volte_disable_carrier_check", "1"],
+            ],
+            "4838": [
+                ["shell", "am", "start", "-n", "com.vivo.upside/.Testing"],
+                ["shell", "am", "start", "-n", "com.iqoo.engineermode/.Testing"],
+            ],
+            "0808": [
+                ["shell", "am", "start", "-n", "com.sec.android.app.modemui/.UsbSettings"],
+            ],
+            "2263": [
+                ["shell", "am", "start", "-n", "com.sec.android.app.servicemodeapp/.ServiceMode"],
+            ]
+        }
+
+        success = False
+        if digits in oem_activities:
+            for act_cmd in oem_activities[digits]:
+                code, out, err = self.run_command(act_cmd, device_id, timeout=3)
+                if code == 0 and "Error" not in out and "SecurityException" not in err and "Exception" not in out:
+                    success = True
+                    break
+
+        if not success:
+            # 2. Standard Secret Code Broadcast (Direct Intent)
+            cmd_broadcast = ["shell", "am", "broadcast", "-a", "android.provider.Telephony.SECRET_CODE", "-d", f"secret_code://{digits}"]
+            code, out, err = self.run_command(cmd_broadcast, device_id, timeout=3)
+            if code == 0 and ("result=0" in out or "Broadcasting" in out):
+                success = True
+
+        if success:
+            if log_cb:
+                log_cb(f"✓ Đã mở thành công chế độ {secret_code} trên điện thoại!", "success")
+            return True
+        else:
+            if log_cb:
+                log_cb(f"⚠ Mã {secret_code} không được hỗ trợ hoặc bị nhà sản xuất khóa trên dòng máy này.", "warning")
+            return False
 
 

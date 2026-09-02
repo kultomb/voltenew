@@ -12,3 +12,14 @@ dist/
 releases/
 build_tmp/
 *.spec
+*.bin
+*.img
+scratch/*.bin
+scratch/*.img
+scratch/dir_*
+scratch/extracted_media/
+scratch/test_unpack_clean/
+.agents/
+extracted_vendor_volte/*.img
+extracted_vendor_volte/*.mp4
+extracted_vendor_volte/unpacked_vendor_files/

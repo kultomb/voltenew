@@ -44,7 +44,7 @@ from volte_engine import VoLTEEngine
 # ---------------------------------------------------------------------------
 # Font System & Color Palette (Enterprise Dark Design System)
 # ---------------------------------------------------------------------------
-FONT_FAMILY = ("Segoe UI", "Montserrat", "Arial", "sans-serif")
+FONT_FAMILY = ("Roboto", "Segoe UI", "Arial", "sans-serif")
 FONT_TITLE = (FONT_FAMILY[0], 19, "bold")
 FONT_SUBTITLE = (FONT_FAMILY[0], 11)
 FONT_CARD_TITLE = (FONT_FAMILY[0], 12, "bold")
@@ -52,7 +52,7 @@ FONT_LABEL = (FONT_FAMILY[0], 11)
 FONT_LABEL_BOLD = (FONT_FAMILY[0], 11, "bold")
 FONT_BTN_MAIN = (FONT_FAMILY[0], 13, "bold")
 FONT_BTN_GRID = (FONT_FAMILY[0], 11, "bold")
-FONT_MONO = ("Consolas", 10)
+FONT_MONO = ("Roboto Mono", 12, "bold")
 
 THEME = {
     "bg_app": "#0d1117",
@@ -133,12 +133,7 @@ class VoLTEFixerApp(ctk.CTk):
         # Build Main UI
         self._build_ui()
 
-        # Logs
-        self.log("=== HBG VoLTE & IMS Fixer Started ===", "info")
-        self.log(f"Đường dẫn ADB: {self.engine.adb_path}", "info")
-        if os.path.exists(self.scrcpy_bin):
-            self.log("✓ Đã nạp Engine Scrcpy v2.7 60 FPS Standalone Live Streamer", "success")
-
+        # Clean Startup: Log remains clean & quiet until user takes action
         # Start ADB Auto Detection Loop
         self.start_device_auto_check()
 
@@ -156,10 +151,23 @@ class VoLTEFixerApp(ctk.CTk):
         # 2. Device Info Card
         self._build_device_card(self.main_container)
 
-        # 3. Actions Panel (Single Hero 1-Click Fix Button)
-        self._build_actions_panel(self.main_container)
+        # 3. Split 2-Column Container (Left: Actions Panel, Right: Log Console)
+        split_body = ctk.CTkFrame(self.main_container, fg_color="transparent")
+        split_body.pack(fill="both", expand=True, pady=(0, 6))
 
-        # 4. Progress Status Bar
+        left_col = ctk.CTkFrame(split_body, fg_color="transparent")
+        left_col.pack(side="left", fill="both", expand=True, padx=(0, 4))
+
+        right_col = ctk.CTkFrame(split_body, fg_color="transparent")
+        right_col.pack(side="right", fill="both", expand=True, padx=(4, 0))
+
+        # Actions Panel (Left Side)
+        self._build_actions_panel(left_col)
+
+        # Log Console (Right Side)
+        self._build_log_console(right_col)
+
+        # 4. Progress Status Bar (Bottom)
         self._build_progress_bar(self.main_container)
 
     def _build_header(self):
@@ -267,20 +275,24 @@ class VoLTEFixerApp(ctk.CTk):
 
     def _build_device_card(self, parent):
         card = ctk.CTkFrame(parent, fg_color=THEME["bg_card"], corner_radius=12, border_width=1, border_color=THEME["border"])
-        card.pack(fill="x", pady=(0, 8))
+        card.pack(fill="x", pady=(0, 6))
 
         inner = ctk.CTkFrame(card, fg_color="transparent")
-        inner.pack(fill="x", padx=14, pady=10)
+        inner.pack(fill="x", padx=12, pady=6)
+
+        # Header Row: Title on Left, Device Selector Dropdown on Right
+        top_row = ctk.CTkFrame(inner, fg_color="transparent")
+        top_row.pack(fill="x", pady=(0, 4))
 
         ctk.CTkLabel(
-            inner,
-            text="❖ THIẾT BỊ ĐANG KẾT NỐI",
+            top_row,
+            text="📱 THIẾT BỊ KẾT NỐI",
             font=FONT_CARD_TITLE,
             text_color=THEME["accent_cyan"]
-        ).pack(anchor="w")
+        ).pack(side="left")
 
         self.device_option = ctk.CTkOptionMenu(
-            inner,
+            top_row,
             values=["Đang quét ADB tự động..."],
             command=self.on_device_selected,
             font=FONT_LABEL,
@@ -292,24 +304,27 @@ class VoLTEFixerApp(ctk.CTk):
             dropdown_hover_color=THEME["bg_card_hover"],
             dropdown_text_color=THEME["text_primary"],
             text_color=THEME["text_primary"],
-            height=32,
-            corner_radius=8
+            height=28,
+            corner_radius=6
         )
-        self.device_option.pack(fill="x", pady=(6, 8))
+        self.device_option.pack(side="right", fill="x", expand=True, padx=(12, 0))
 
+        # Compact Info Bar (3 Columns x 2 Rows)
         self.info_frame = ctk.CTkFrame(inner, fg_color=THEME["bg_inset"], corner_radius=8, border_width=1, border_color=THEME["border"])
         self.info_frame.pack(fill="x")
 
         info_grid = ctk.CTkFrame(self.info_frame, fg_color="transparent")
-        info_grid.pack(fill="x", padx=10, pady=6)
+        info_grid.pack(fill="x", padx=8, pady=3)
         info_grid.columnconfigure(0, weight=1)
         info_grid.columnconfigure(1, weight=1)
+        info_grid.columnconfigure(2, weight=1)
 
         self.lbl_model = self._create_info_cell(info_grid, 0, 0, "Model:", "Chưa kết nối")
-        self.lbl_brand = self._create_info_cell(info_grid, 0, 1, "Hãng sản xuất:", "---")
-        self.lbl_android = self._create_info_cell(info_grid, 1, 0, "Android:", "---")
-        self.lbl_sim = self._create_info_cell(info_grid, 1, 1, "Nhà mạng SIM:", "---")
-        self.lbl_ims = self._create_info_cell(info_grid, 2, 0, "Trạng thái VoLTE:", "---", col_span=2)
+        self.lbl_brand = self._create_info_cell(info_grid, 0, 1, "Hãng:", "---")
+        self.lbl_android = self._create_info_cell(info_grid, 0, 2, "Android:", "---")
+
+        self.lbl_sim = self._create_info_cell(info_grid, 1, 0, "Nhà mạng:", "---")
+        self.lbl_ims = self._create_info_cell(info_grid, 1, 1, "Trạng thái VoLTE:", "---", col_span=2)
 
     def _create_info_cell(self, parent, row: int, col: int, title: str, default_val: str, col_span: int = 1) -> ctk.CTkLabel:
         cell = ctk.CTkFrame(parent, fg_color="transparent")
@@ -322,46 +337,60 @@ class VoLTEFixerApp(ctk.CTk):
 
     def _build_actions_panel(self, parent):
         card = ctk.CTkFrame(parent, fg_color=THEME["bg_card"], corner_radius=12, border_width=1, border_color=THEME["border"])
-        card.pack(fill="x", pady=(0, 8))
+        card.pack(fill="both", expand=True)
 
         inner = ctk.CTkFrame(card, fg_color="transparent")
-        inner.pack(fill="x", padx=14, pady=12)
+        inner.pack(fill="both", expand=True, padx=14, pady=12)
 
         ctk.CTkLabel(
             inner,
-            text="⚙ KÍCH HOẠT VoLTE & CÀI ĐẶT THỦ CÔNG",
+            text="⚙ CÔNG CỤ KÍCH HOẠT",
             font=FONT_CARD_TITLE,
             text_color=THEME["accent_cyan"]
         ).pack(anchor="w", pady=(0, 8))
 
-        # Main Hero 1-Click Auto-Fix Button
+        # Button 1: 1-Click Auto Fix Button
         self.btn_all_in_one = ctk.CTkButton(
             inner,
-            text="⚡ KÍCH HOẠT VoLTE TỰ ĐỘNG (1-CLICK FIX)",
+            text="KÍCH HOẠT VOLTE TỰ ĐỘNG (1-CLICK FIX)",
             font=FONT_BTN_MAIN,
             fg_color=THEME["success"],
             hover_color=THEME["success_hover"],
-            height=46,
+            height=42,
             corner_radius=10,
             command=self.action_fix_all_in_one
         )
         self.btn_all_in_one.pack(fill="x", pady=(0, 8))
 
-        # Secondary row with 1 clean full-width button
-        self.btn_install_apks = ctk.CTkButton(
+        # Button 2: Universal Vendor VoLTE Patcher (Direct In-App File Picker)
+        self.btn_vendor_oppo = ctk.CTkButton(
             inner,
-            text="📦 CÀI ĐẶT BỘ ỨNG DỤNG SHIZUKU & PIXEL IMS",
+            text="TẠO TỆP VÁ VENDOR VOLTE (DUMP/PATCH)",
             font=FONT_BTN_GRID,
-            fg_color=THEME["bg_inset"],
+            fg_color=THEME["accent_indigo"],
             hover_color=THEME["bg_card_hover"],
+            text_color="#ffffff",
+            height=40,
+            corner_radius=8,
+            command=self.action_nap_vendor_oppo_series
+        )
+        self.btn_vendor_oppo.pack(fill="x", pady=(0, 8))
+
+        # Button 3: Secret Dial Codes Button
+        self.btn_secret_codes = ctk.CTkButton(
+            inner,
+            text="BẢNG MÃ BÍ MẬT DIAL CODES CÁC HÃNG",
+            font=FONT_BTN_GRID,
+            fg_color=THEME["bg_card_hover"],
+            hover_color=THEME["border"],
             border_width=1,
             border_color=THEME["border"],
             text_color=THEME["accent_cyan"],
-            height=38,
+            height=40,
             corner_radius=8,
-            command=self.action_install_both_apks
+            command=self.open_secret_codes_dialog
         )
-        self.btn_install_apks.pack(fill="x")
+        self.btn_secret_codes.pack(fill="x")
 
     def _build_progress_bar(self, parent):
         prog_card = ctk.CTkFrame(parent, fg_color=THEME["bg_card"], corner_radius=12, border_width=1, border_color=THEME["border"])
@@ -375,7 +404,7 @@ class VoLTEFixerApp(ctk.CTk):
 
         ctk.CTkLabel(
             status_bar,
-            text="► TRẠNG THÁI TIẾN TRÌNH",
+            text="⚡ TIẾN TRÌNH",
             font=FONT_CARD_TITLE,
             text_color=THEME["accent_cyan"]
         ).pack(side="left")
@@ -410,7 +439,7 @@ class VoLTEFixerApp(ctk.CTk):
 
         ctk.CTkLabel(
             title_row,
-            text="💻 NHẬT KÝ VÀ TIẾN TRÌNH LỆNH (LOG CONSOLE)",
+            text="📋 NHẬT KÝ THỰC THI",
             font=FONT_CARD_TITLE,
             text_color=THEME["accent_cyan"]
         ).pack(side="left")
@@ -473,18 +502,23 @@ class VoLTEFixerApp(ctk.CTk):
             self.scrcpy_bin,
             "-s", device_id,
             "--no-audio",
+            "--max-size=1280",
             "--window-title", f"Màn Hình Android Live — [{device_id}]",
             f"--window-x={target_x}",
             f"--window-y={target_y}",
             f"--window-height={scrcpy_height}"
         ]
 
+        env = os.environ.copy()
+        if hasattr(self.engine, "adb_path") and self.engine.adb_path:
+            env["ADB"] = self.engine.adb_path
+
         try:
             self.scrcpy_proc = subprocess.Popen(
                 cmd,
+                env=env,
                 stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-                creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0
+                stderr=subprocess.DEVNULL
             )
             self.log(f"🚀 Đã tự động mở màn hình Android Live (60 FPS) cân đối bên phải cho {device_id}!", "success")
         except Exception as e:
@@ -637,12 +671,21 @@ class VoLTEFixerApp(ctk.CTk):
     def log(self, message: str, level: str = "info"):
         now = datetime.datetime.now().strftime("[%H:%M:%S]")
         line = f"{now} [{level.upper()}] {message}\n"
-        self.after(0, lambda: self._append_log_to_txt(line))
+        self.after(0, lambda: self._append_log_to_txt(line, level))
 
-    def _append_log_to_txt(self, line: str):
+    def _append_log_to_txt(self, line: str, level: str = "info"):
         if hasattr(self, "txt_log") and self.txt_log:
             self.txt_log.configure(state="normal")
-            self.txt_log.insert("end", line)
+            
+            # Anti-glare eye-soothing color tags
+            if "tag_info" not in self.txt_log.tag_names():
+                self.txt_log.tag_config("tag_info", foreground="#38bdf8")     # Soft Sky Blue
+                self.txt_log.tag_config("tag_success", foreground="#34d399")  # Soft Emerald Green
+                self.txt_log.tag_config("tag_warning", foreground="#fbbf24")  # Warm Amber Gold
+                self.txt_log.tag_config("tag_error", foreground="#f87171")    # Gentle Coral Red
+
+            tag_name = f"tag_{level.lower()}" if f"tag_{level.lower()}" in self.txt_log.tag_names() else "tag_info"
+            self.txt_log.insert("end", line, tag_name)
             self.txt_log.see("end")
             self.txt_log.configure(state="disabled")
 
@@ -660,7 +703,13 @@ class VoLTEFixerApp(ctk.CTk):
         state = "normal" if enabled else "disabled"
         buttons = [
             getattr(self, "btn_all_in_one", None),
-            getattr(self, "btn_install_apks", None),
+            getattr(self, "btn_vendor_oppo", None),
+            getattr(self, "btn_vendor_rom_advanced", None),
+            getattr(self, "btn_deep_diagnostics", None),
+            getattr(self, "btn_giai_ma_overlay", None),
+            getattr(self, "btn_repack_apk", None),
+            getattr(self, "btn_export_unlocktool", None),
+            getattr(self, "btn_secret_codes", None),
             getattr(self, "btn_refresh", None),
             getattr(self, "btn_live_screen", None),
         ]
@@ -678,14 +727,21 @@ class VoLTEFixerApp(ctk.CTk):
     # ---------------------------------------------------------------------------
     def _check_selected_device(self) -> bool:
         if not self.selected_device_id:
-            messagebox.showwarning("Cảnh báo", "Vui lòng kết nối và bật ADB Debugging trên điện thoại Android trước!")
+            devs = self.engine.get_devices()
+            if devs:
+                self.selected_device_id = devs[0]["id"]
+                return True
+            messagebox.showwarning("Cảnh báo", "Vui lòng cắm cáp USB và bật Gỡ Lỗi USB (USB Debugging) trên điện thoại!")
             return False
         return True
 
     def action_fix_all_in_one(self):
         """Single Smart Auto-Fix Button action for ALL brands."""
+        print("\n[DEBUG CLICK] ⚡ Bấm nút: KÍCH HOẠT VoLTE TỰ ĐỘNG (1-CLICK FIX)")
         if not self._check_selected_device():
+            print("[DEBUG WARNING] Chưa phát hiện thiết bị nào kết nối ADB!")
             return
+        print(f"[DEBUG DEVICE] ID thiết bị đang chọn: {self.selected_device_id}")
         self.is_working = True
         self.set_controls_enabled(False)
         self.set_status("Đang thực hiện kích hoạt VoLTE tự động 1-Click...", 0.2)
@@ -693,8 +749,358 @@ class VoLTEFixerApp(ctk.CTk):
 
     def _run_all_in_one_thread(self):
         dev_id = self.selected_device_id
-        res = self.engine.smart_fix_all(dev_id, self.dex_path, self.log)
-        self.after(0, lambda: self._on_action_completed(res, "Kích Hoạt VoLTE Tự Động"))
+        try:
+            res = self.engine.smart_fix_all(dev_id, self.dex_path, self.log)
+            print(f"[DEBUG RESULT] Kết quả Fix 1-Click: {res}")
+            self.after(0, lambda: self._on_action_completed(res, "Kích Hoạt VoLTE Tự Động"))
+        except Exception as e:
+            import traceback
+            print(f"[DEBUG ERROR] Lỗi khi chạy Fix 1-Click:\n{traceback.format_exc()}")
+            self.log(f"⚠ Lỗi hệ thống: {e}", "error")
+            self.after(0, lambda: self._on_action_completed(False, "Kích Hoạt VoLTE Tự Động"))
+
+    def action_mtk_brom_workflow(self):
+        """Run MTK BROM Automated Read, Patch & Flash workflow."""
+        self.is_working = True
+        self.set_controls_enabled(False)
+        
+        def _thread():
+            try:
+                from vendor_patcher.mtk_brom_engine import MTKBromEngine
+                engine = MTKBromEngine()
+                ok = engine.run_full_brom_workflow(self.log, self.set_status)
+                self.after(0, lambda: self._on_action_completed(ok, "Kích hoạt Vendor MTK BROM"))
+            except Exception as ex:
+                self.log(f"❌ Lỗi tiến trình MTK BROM: {ex}", "error")
+                self.after(0, lambda: self._on_action_completed(False, "Kích hoạt Vendor MTK BROM"))
+
+        self.executor.submit(_thread)
+
+    def action_nap_vendor_oppo_series(self):
+        """Run Universal Vendor VoLTE Patcher directly inside main app console."""
+        from tkinter import filedialog
+        fpath = filedialog.askopenfilename(
+            title="Chọn Tệp Vendor (vendor.bin / vendor.img)",
+            filetypes=[("Vendor Partition Image", "*.bin *.img"), ("All Files", "*.*")]
+        )
+        if not fpath or not os.path.exists(fpath):
+            return
+
+        self.log(f"\n⚡ Đang tiến hành tạo tệp vá VoLTE cho [{os.path.basename(fpath)}]...", "info")
+        
+        def _thread():
+            try:
+                from vendor_patcher.vendor_engine import patch_vendor_image
+                out_file = patch_vendor_image(fpath)
+                if out_file:
+                    self.log("🎉 TẠO TỆP VÁ VENDOR THÀNH CÔNG! Tệp bản vá đã lưu tại:", "success")
+                    self.log(f"👉 {out_file}", "success")
+                    self.log("👉 HƯỚNG DẪN NẠP UNLOCKTOOL: Mở UnlockTool -> Trỏ tệp vendor_patched.bin vào phân vùng vendor -> Tích [PATCH DM VERITY] -> Bấm [FLASH] ⚡", "info")
+                    self.after(0, lambda: messagebox.showinfo("Thành công", f"Đã tạo tệp vá Vendor VoLTE thành công!\n\nTệp đầu ra:\n{out_file}"))
+            except Exception as ex:
+                self.log(f"❌ Lỗi tạo tệp vá Vendor: {ex}", "error")
+
+        self.executor.submit(_thread)
+
+    def action_restore_defaults(self):
+        """Run Automated Restore directly inside main app console."""
+        self.log("\n🛡️ Bắt đầu khôi phục VoLTE về cài đặt mặc định...", "info")
+        def _thread():
+            try:
+                from vendor_patcher.restore_engine import main as run_restore
+                run_restore()
+                self.log("🎉 Đã hoàn tất khôi phục cài đặt VoLTE về mặc định nhà sản xuất!", "success")
+                self.after(0, lambda: messagebox.showinfo("Khôi Phục", "Đã hoàn tất khôi phục cài đặt VoLTE về mặc định!"))
+            except Exception as ex:
+                self.log(f"⚠ Lỗi khôi phục: {ex}", "error")
+
+        self.executor.submit(_thread)
+
+    def action_nap_vendor_rom_advanced(self):
+        """Run Advanced Vendor ROM Flashing & Partition Injection."""
+        print("\n[DEBUG CLICK] 🔥 Bấm nút: NẠP VENDOR NÂNG CAO THẲNG VÀO ROM")
+        self.is_working = True
+        self.set_controls_enabled(False)
+        self.set_status("Đang thực hiện nạp Vendor Nâng Cao vào ROM...", 0.3)
+        self.log("🔥 Khởi chạy kịch bản Nạp Vendor Nâng Cao vào ROM (Partition Flashing)...", "info")
+
+        def _thread():
+            try:
+                import napkich_vendor_rom_advanced
+                napkich_vendor_rom_advanced.main()
+                self.after(0, lambda: self._on_action_completed(True, "Nạp Vendor Nâng Cao Vào ROM"))
+            except Exception as ex:
+                import traceback
+                print(f"[DEBUG ERROR] Lỗi khi nạp Vendor ROM:\n{traceback.format_exc()}")
+                self.log(f"⚠ Lỗi nạp Vendor ROM: {ex}", "error")
+                self.after(0, lambda: self._on_action_completed(False, "Nạp Vendor Nâng Cao Vào ROM"))
+
+        self.executor.submit(_thread)
+
+    def action_run_deep_diagnostics(self):
+        """Run 5-layer deep scientific diagnostics scan on OPPO A31 / MediaTek device."""
+        print("\n[DEBUG CLICK] 🔬 Bấm nút: CHẨN ĐOÁN KHOA HỌC CHUYÊN SÂU OPPO A31")
+        self.is_working = True
+        self.set_controls_enabled(False)
+        self.set_status("Đang thực hiện chẩn đoán khoa học 5 tầng...", 0.3)
+        self.log("🔬 Bắt đầu chẩn đoán khoa học chuyên sâu OPPO A31 (5 Tầng System)...", "info")
+
+        def _thread():
+            try:
+                import oppo_a31_deep_diagnostics
+                oppo_a31_deep_diagnostics.main()
+                self.after(0, lambda: self._on_action_completed(True, "Chẩn Đoán Khoa Học Chuyên Sâu"))
+            except Exception as ex:
+                import traceback
+                print(f"[DEBUG ERROR] Lỗi khi chẩn đoán:\n{traceback.format_exc()}")
+                self.log(f"⚠ Lỗi chẩn đoán: {ex}", "error")
+                self.after(0, lambda: self._on_action_completed(False, "Chẩn Đoán Khoa Học Chuyên Sâu"))
+
+        self.executor.submit(_thread)
+
+    def action_giai_ma_overlay(self):
+        """Run root cause discovery and patch extraction for OPPO A31."""
+        print("\n[DEBUG CLICK] 🔓 Bấm nút: GIẢI MÃ GỐC RỄ KHÓA VOLTE (OPPO A31)")
+        self.is_working = True
+        self.set_controls_enabled(False)
+        self.set_status("Đang thực hiện giải mã gốc rễ tệp XML cấu hình OPPO...", 0.3)
+        self.log("🔓 Bắt đầu truy tìm & bóc tách bản vá XML mở khóa VoLTE...", "info")
+
+        def _thread():
+            try:
+                import oppo_a31_overlay_patcher
+                oppo_a31_overlay_patcher.main()
+                self.after(0, lambda: self._on_action_completed(True, "Giải Mã Gốc Rễ Khóa VoLTE"))
+            except Exception as ex:
+                import traceback
+                print(f"[DEBUG ERROR] Lỗi khi giải mã:\n{traceback.format_exc()}")
+                self.log(f"⚠ Lỗi giải mã: {ex}", "error")
+                self.after(0, lambda: self._on_action_completed(False, "Giải Mã Gốc Rễ Khóa VoLTE"))
+
+        self.executor.submit(_thread)
+
+    def action_repack_and_flash_apk(self):
+        """Run OppoSimSettings APK repacker and prompt for system flashing."""
+        print("\n[DEBUG CLICK] 📦 Bấm nút: ĐÓNG GÓI & NẠP OPPOSIMSETTINGS PATCHED")
+        self.is_working = True
+        self.set_controls_enabled(False)
+        self.set_status("Đang thực hiện đóng gói OppoSimSettings_Patched.apk...", 0.3)
+        self.log("📦 Đang thay thế tệp XML volte_status=\"1\" và đóng gói APK...", "info")
+
+        def _thread():
+            try:
+                import repack_opposimsettings_apk
+                repack_opposimsettings_apk.main()
+                self.after(0, lambda: self._on_action_completed(True, "Đóng Gói & Nạp OppoSimSettings Patched"))
+            except Exception as ex:
+                import traceback
+                print(f"[DEBUG ERROR] Lỗi khi đóng gói APK:\n{traceback.format_exc()}")
+                self.log(f"⚠ Lỗi đóng gói APK: {ex}", "error")
+                self.after(0, lambda: self._on_action_completed(False, "Đóng Gói & Nạp OppoSimSettings Patched"))
+
+        self.executor.submit(_thread)
+
+    def action_export_unlocktool(self):
+        """Run export package generator for UnlockTool / SP Flash Tool."""
+        print("\n[DEBUG CLICK] 🎁 Bấm nút: TẠO GÓI NẠP CHUYÊN NGHỆP UNLOCKTOOL")
+        self.is_working = True
+        self.set_controls_enabled(False)
+        self.set_status("Đang gom gói nạp chuyên nghiệp cho UnlockTool...", 0.3)
+        self.log("🎁 Đang tạo thư mục GOI_NAP_UNLOCKTOOL_OPPO...", "info")
+
+        def _thread():
+            try:
+                import tao_goi_nap_oppo_unlocktool
+                tao_goi_nap_oppo_unlocktool.main()
+                self.after(0, lambda: self._on_action_completed(True, "Tạo Gói Nạp UnlockTool"))
+            except Exception as ex:
+                import traceback
+                print(f"[DEBUG ERROR] Lỗi khi tạo gói nạp:\n{traceback.format_exc()}")
+                self.log(f"⚠ Lỗi tạo gói nạp: {ex}", "error")
+                self.after(0, lambda: self._on_action_completed(False, "Tạo Gói Nạp UnlockTool"))
+
+        self.executor.submit(_thread)
+
+    def open_secret_codes_dialog(self):
+        """Open interactive popup listing secret dial codes for all brands (OPPO, Xiaomi, MTK, Vivo, Samsung, Qualcomm)."""
+        print("\n[DEBUG CLICK] 🔑 Bấm nút: BẢNG MÃ BÍ MẬT DIAL CODES TẤT CẢ CÁC HÃNG")
+        dlg = ctk.CTkToplevel(self)
+        dlg.title("🔑 BẢNG MÃ BÍ MẬT DIAL CODES CÁC HÃNG (MBN / VOLTE / TESTING)")
+        w, h = 640, 600
+        dlg.update_idletasks()
+        self.update_idletasks()
+        screen_w = dlg.winfo_screenwidth()
+        screen_h = dlg.winfo_screenheight()
+
+        parent_x = self.winfo_x()
+        parent_y = self.winfo_y()
+        parent_w = self.winfo_width()
+        parent_h = self.winfo_height()
+
+        cx = parent_x + (parent_w - w) // 2
+        cy = parent_y + (parent_h - h) // 2
+
+        if cx < 0 or cy < 0 or cx > screen_w - 50 or cy > screen_h - 50:
+            cx = (screen_w - w) // 2
+            cy = (screen_h - h) // 2
+
+    def open_secret_codes_dialog(self):
+        """Open popup modal dialog for Secret Codes organized into 3 tabs with zero scrolling."""
+        dlg = ctk.CTkToplevel(self)
+        dlg.title("🔑 BẢNG MÃ BÍ MẬT DIAL CODES TẤT CẢ CÁC HÃNG")
+        
+        w, h = 740, 520
+        dlg.update_idletasks()
+        self.update_idletasks()
+        screen_w = dlg.winfo_screenwidth()
+        screen_h = dlg.winfo_screenheight()
+
+        parent_x = self.winfo_x()
+        parent_y = self.winfo_y()
+        parent_w = self.winfo_width()
+        parent_h = self.winfo_height()
+
+        cx = parent_x + (parent_w - w) // 2
+        cy = parent_y + (parent_h - h) // 2
+
+        if cx < 0 or cy < 0 or cx > screen_w - 50 or cy > screen_h - 50:
+            cx = (screen_w - w) // 2
+            cy = (screen_h - h) // 2
+
+        dlg.geometry(f"{w}x{h}+{max(0, cx)}+{max(0, cy)}")
+        dlg.resizable(False, False)
+        dlg.configure(fg_color=THEME["bg_app"])
+        dlg.lift()
+        dlg.focus_force()
+        dlg.attributes("-topmost", True)
+        dlg.after(200, lambda: dlg.attributes("-topmost", False))
+        dlg.grab_set()
+
+        # Title
+        banner = ctk.CTkFrame(dlg, fg_color=THEME["bg_card"], corner_radius=10, border_width=1, border_color=THEME["border"])
+        banner.pack(fill="x", padx=16, pady=(12, 6))
+
+        ctk.CTkLabel(
+            banner,
+            text="🔑 BẢNG MÃ BÍ MẬT DIAL CODES TẤT CẢ CÁC HÃNG",
+            font=FONT_CARD_TITLE,
+            text_color=THEME["accent_cyan"]
+        ).pack(pady=(8, 2))
+
+        ctk.CTkLabel(
+            banner,
+            text="Bấm nút '🚀 Mở' bên cạnh mã để kích hoạt trực tiếp lên điện thoại đang kết nối.",
+            font=FONT_SUBTITLE,
+            text_color=THEME["text_muted"]
+        ).pack(pady=(0, 6))
+
+        # Tabview Container (Zero Scrollbar Needed)
+        tabview = ctk.CTkTabview(
+            dlg,
+            fg_color=THEME["bg_card"],
+            segmented_button_fg_color=THEME["bg_inset"],
+            segmented_button_selected_color=THEME["accent_indigo"],
+            segmented_button_selected_hover_color=THEME["accent_blue"],
+            corner_radius=10
+        )
+        tabview.pack(fill="both", expand=True, padx=16, pady=(0, 12))
+
+        tab_ims = tabview.add("🌐 IMS & CARRIER OVERRIDE")
+        tab_modem = tabview.add("🛠️ MODEM & ENGINEERING")
+        tab_oem = tabview.add("🔬 OEM DIAGNOSTIC")
+
+        # Categorized Secret Codes Mapping according to User Specification
+        categories_data = {
+            "tab_ims": [
+                ("IMS_STATUS", [
+                    ("*#*#4636#*#*", "Menu Trạng Thái IMS & Radio Info")
+                ]),
+                ("VOLTE_CARRIER_OVERRIDE", [
+                    ("*#*#86583#*#*", "Mở Khóa VoLTE Xiaomi Carrier Check")
+                ]),
+                ("VOWIFI_CARRIER_OVERRIDE", [
+                    ("*#*#869434#*#*", "Mở Khóa VoWiFi Xiaomi Carrier Check")
+                ])
+            ],
+            "tab_modem": [
+                ("MODEM_ENGINEERING", [
+                    ("*#*#3646633#*#*", "MediaTek EngineerMode (Telephony -> IMS)"),
+                    ("*#0011#", "Samsung ServiceMode (LTE Band / QCI)"),
+                    ("*#9090#", "Samsung Diagnostic Config")
+                ]),
+                ("MODEM_INTERFACE", [
+                    ("*#0808#", "Samsung USB / Serial Port Settings (RMNET+DM)")
+                ])
+            ],
+            "tab_oem": [
+                ("OEM_DIAGNOSTIC", [
+                    ("*#800#", "OPPO Logcat & Feedback Log (IMS Log)"),
+                    ("*#801#", "OPPO Engineering Switch / Port"),
+                    ("*#808#", "OPPO Device Testing (RF / Hardware)"),
+                    ("*#899#", "OPPO EngineerMode / AfterSales"),
+                    ("*#*#558#*#*", "Vivo Factory Test & Engineering"),
+                    ("*#*#2846579#*#*", "Huawei Project Menu"),
+                    ("*#*#7378423#*#*", "Sony Xperia Service Menu")
+                ])
+            ]
+        }
+
+        tab_objs = {
+            "tab_ims": tab_ims,
+            "tab_modem": tab_modem,
+            "tab_oem": tab_oem
+        }
+
+        for tab_key, cat_list in categories_data.items():
+            parent_tab = tab_objs[tab_key]
+            
+            for cat_title, code_tuples in cat_list:
+                cat_frame = ctk.CTkFrame(parent_tab, fg_color=THEME["bg_inset"], corner_radius=8, border_width=1, border_color=THEME["border"])
+                cat_frame.pack(fill="x", padx=6, pady=4)
+
+                ctk.CTkLabel(
+                    cat_frame,
+                    text=f"❖ {cat_title}",
+                    font=FONT_LABEL_BOLD,
+                    text_color=THEME["accent_cyan"]
+                ).pack(anchor="w", padx=10, pady=(6, 2))
+
+                for code_str, desc in code_tuples:
+                    item = ctk.CTkFrame(cat_frame, fg_color="transparent")
+                    item.pack(fill="x", padx=8, pady=2)
+                    item.columnconfigure(1, weight=1)
+
+                    lbl_code = ctk.CTkLabel(item, text=code_str, font=FONT_LABEL_BOLD, text_color=THEME["success"], width=145, anchor="w")
+                    lbl_code.grid(row=0, column=0, sticky="w", padx=(4, 4), pady=2)
+
+                    lbl_desc = ctk.CTkLabel(item, text=desc, font=FONT_LABEL, text_color=THEME["text_primary"], anchor="w", justify="left")
+                    lbl_desc.grid(row=0, column=1, sticky="w", padx=4, pady=2)
+
+                    def make_launch_cmd(target_code=code_str):
+                        print(f"\n[DEBUG CLICK SECRET CODE] 🚀 Bấm nút mở mã bí mật: {target_code}")
+                        if not self._check_selected_device():
+                            messagebox.showwarning("Cảnh báo", "Vui lòng kết nối điện thoại ADB để mở mã bí mật!", parent=dlg)
+                            return
+                        self.log(f"⚡ Đang gửi lệnh kích hoạt mã [{target_code}] tới điện thoại qua ADB...", "info")
+                        def _thread():
+                            try:
+                                self.engine.launch_secret_code(self.selected_device_id, target_code, self.log)
+                            except Exception as ex:
+                                import traceback
+                                print(f"[DEBUG ERROR] Lỗi khi gửi mã bí mật {target_code}:\n{traceback.format_exc()}")
+                        self.executor.submit(_thread)
+
+                    btn_launch = ctk.CTkButton(
+                        item,
+                        text="🚀 Mở",
+                        font=FONT_LABEL_BOLD,
+                        width=65,
+                        height=26,
+                        fg_color=THEME["accent_indigo"],
+                        hover_color=THEME["bg_card_hover"],
+                        command=make_launch_cmd
+                    )
+                    btn_launch.grid(row=0, column=2, sticky="e", padx=(4, 6), pady=2)
 
     def action_install_both_apks(self):
         """Install both Shizuku and Pixel IMS APKs manually onto target Android device in correct order."""
@@ -759,8 +1165,12 @@ class VoLTEFixerApp(ctk.CTk):
 
         dlg.geometry(f"{w}x{h}+{max(0, cx)}+{max(0, cy)}")
         dlg.resizable(False, False)
-        dlg.grab_set()
         dlg.configure(fg_color=THEME["bg_app"])
+        dlg.lift()
+        dlg.focus_force()
+        dlg.attributes("-topmost", True)
+        dlg.after(200, lambda: dlg.attributes("-topmost", False))
+        dlg.grab_set()
 
         # Title Banner
         banner = ctk.CTkFrame(dlg, fg_color=THEME["bg_card"], corner_radius=10, border_width=1, border_color=THEME["border"])
@@ -848,6 +1258,10 @@ class VoLTEFixerApp(ctk.CTk):
 
         dlg.geometry(f"{w}x{h}+{max(0, cx)}+{max(0, cy)}")
         dlg.resizable(False, False)
+        dlg.lift()
+        dlg.focus_force()
+        dlg.attributes("-topmost", True)
+        dlg.after(200, lambda: dlg.attributes("-topmost", False))
         dlg.grab_set()
 
         lbl_title = ctk.CTkLabel(

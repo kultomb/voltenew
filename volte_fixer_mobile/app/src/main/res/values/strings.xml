@@ -1,7 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <string name="app_name">HBG VoLTE Fixer</string>
-    <string name="title_app">⚡ HBG VoLTE &amp; IMS Fixer Mobile</string>
-    <string name="subtitle_app">Ứng dụng ép bật VoLTE / VoWiFi 1-Click độc quyền cho Android 8.0 đến 14+</string>
-    <string name="btn_fix_all">⚡ KÍCH HOẠT VoLTE TỰ ĐỘNG (1-CLICK)</string>
-</resources>
