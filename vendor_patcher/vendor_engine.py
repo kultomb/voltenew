@@ -16,7 +16,10 @@ if sys.platform == "win32":
 
 # Master Vendor Replacement Rules matching EXE working profile
 MASTER_VENDOR_RULES = [
-    # Maintain EXE profile: mtk_ct_volte_support=3 in build.prop (handled by gaq_oppo_mtk_volte.rc at boot)
+    # Universal Dual SIM VoLTE: mtk_ct_volte_support=3 (SIM 1 + SIM 2 CT / Viettel / Vina / Mobi)
+    (b"persist.vendor.mtk_ct_volte_support=0", b"persist.vendor.mtk_ct_volte_support=3"),
+    (b"persist.vendor.mtk_ct_volte_support=1", b"persist.vendor.mtk_ct_volte_support=3"),
+    (b"persist.vendor.mtk_ct_volte_support=2", b"persist.vendor.mtk_ct_volte_support=3"),
     (b"persist.vendor.mtk_ct_volte_support=3", b"persist.vendor.mtk_ct_volte_support=3"),
     
     # MTK VoLTE Enable (0/1/2 -> 3=Dual VoLTE / DSBP Master Active)
@@ -24,10 +27,14 @@ MASTER_VENDOR_RULES = [
     (b"persist.vendor.mtk.volte.enable=1", b"persist.vendor.mtk.volte.enable=3"),
     (b"persist.vendor.mtk.volte.enable=2", b"persist.vendor.mtk.volte.enable=3"),
     
-    # Radio VoLTE State (0/1/2 -> 3=Active Hardware VoLTE)
+    # Radio VoLTE State (0/1/2 -> 3=Active Hardware Dual Slot VoLTE)
     (b"persist.vendor.radio.volte_state=0", b"persist.vendor.radio.volte_state=3"),
     (b"persist.vendor.radio.volte_state=1", b"persist.vendor.radio.volte_state=3"),
     (b"persist.vendor.radio.volte_state=2", b"persist.vendor.radio.volte_state=3"),
+    
+    # Multi-IMS Support (mims_support=2 for Dual SIM IMS instances)
+    (b"persist.vendor.mims_support=0", b"persist.vendor.mims_support=2"),
+    (b"persist.vendor.mims_support=1", b"persist.vendor.mims_support=2"),
     
     # MTK Dynamic IMS Switch (1=Enable CT SIM Restriction -> 0=Disable Restriction for Viettel/Vina)
     (b"persist.vendor.mtk_dynamic_ims_switch=1", b"persist.vendor.mtk_dynamic_ims_switch=0"),
@@ -36,10 +43,12 @@ MASTER_VENDOR_RULES = [
     (b"persist.vendor.ims.op.config=0", b"persist.vendor.ims.op.config=1"),
     (b"persist.vendor.mtk_ims_op_config=0", b"persist.vendor.mtk_ims_op_config=1"),
     
-    # Baseband VoLTE Support & NVRAM Provisioning
+    # Baseband VoLTE Support & NVRAM Provisioning for Dual SIM (Sub0 & Sub1)
     (b"persist.vendor.volte_support=0", b"persist.vendor.volte_support=1"),
     (b"persist.vendor.radio.mtk_dsbp_support=0", b"persist.vendor.radio.mtk_dsbp_support=1"),
     (b"persist.vendor.radio.imstestmode=0", b"persist.vendor.radio.imstestmode=1"),
+    (b"persist.vendor.radio.volte_pro_sub0=0", b"persist.vendor.radio.volte_pro_sub0=1"),
+    (b"persist.vendor.radio.volte_pro_sub1=0", b"persist.vendor.radio.volte_pro_sub1=1"),
     (b"26,0;27,1;28,1;29,1;", b"26,1;27,1;28,1;29,1;"),
     (b"26,0;27,1;", b"26,1;27,1;")
 ]
