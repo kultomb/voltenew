@@ -20,7 +20,7 @@ def main():
     print("  🚀 HBG VOLTE FIXER — KÍCH HOẠT THANH SÓNG VOLTE TRỰC TIẾP QUA ADB")
     print("==========================================================================")
 
-    # 1. Single-command batch setprop
+    # 1. Single-command batch setprop & settings put
     batch_props_cmd = (
         'adb shell "'
         'setprop persist.mtk.ims_support 1; '
@@ -43,6 +43,15 @@ def main():
         'setprop persist.vendor.radio.volte_pro_sub1 1; '
         'setprop persist.sys.oppo.carrier.volte 1; '
         'setprop persist.radio_oppo_ct_volte_support 1; '
+        'settings put global enhanced_4g_mode_enabled 1 2>/dev/null; '
+        'settings put global enhanced_4g_mode_enabled_sub0 1 2>/dev/null; '
+        'settings put global enhanced_4g_mode_enabled_sub1 1 2>/dev/null; '
+        'settings put global volte_vt_enabled 1 2>/dev/null; '
+        'settings put global volte_vt_enabled_sub0 1 2>/dev/null; '
+        'settings put global volte_vt_enabled_sub1 1 2>/dev/null; '
+        'settings put global volte_provisioned 1 2>/dev/null; '
+        'settings put global volte_provisioned_sub0 1 2>/dev/null; '
+        'settings put global volte_provisioned_sub1 1 2>/dev/null; '
         'su -c \'setprop persist.vendor.radio.volte_state 3; setprop persist.vendor.mtk.volte.enable 3; setprop persist.vendor.mtk_ct_volte_support 3\' 2>/dev/null'
         '"'
     )
