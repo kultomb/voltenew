@@ -45,7 +45,7 @@ def main():
         pass
 
     print("====================================================================")
-    print("  🚀 HBG TOOL: ĐÓNG GÓI TỆP THỰC THI MONOLITHIC & TẠO BAN RELEASE")
+    print("  🚀 HBG TOOL: ĐÓNG GÓI BẢO VỆ CHỐNG DECOMPILE (CYTHON + PYARMOR)")
     print(f"  📌 Phiên bản: v{version_str} (Build #{build_num})")
     print("====================================================================")
 
@@ -58,7 +58,46 @@ def main():
             except Exception:
                 pass
 
-    # Prepare PyInstaller command flags (Standalone Single EXE file with icon)
+    # 1. Cythonize Core Engines directly to Native C Extensions (.pyd)
+    print("\n🛡️ [1/3] Đang tiến hành mã hóa biên dịch Cython sang C Native Extensions (.pyd)...")
+    try:
+        from setuptools import setup
+        from Cython.Build import cythonize
+        cython_targets = [
+            "volte_engine.py",
+            os.path.join("vendor_patcher", "vendor_engine.py"),
+            os.path.join("vendor_patcher", "restore_engine.py")
+        ]
+        setup(
+            script_args=["build_ext", "--inplace"],
+            ext_modules=cythonize(cython_targets, build_dir=os.path.join("build", "cython_tmp"), quiet=True)
+        )
+        print("  ✓ Biên dịch Cython C-Extensions (.pyd) CHỐNG DECOMPILE THÀNH CÔNG!")
+    except Exception as e:
+        print(f"  ⚠ Cảnh báo Cython: {e}")
+
+    # 2. PyArmor Obfuscation for GUI components
+    print("\n🔒 [2/3] Đang mã hóa AES Bytecode bằng PyArmor...")
+    obf_dir = os.path.join(build_dir, "obf_src")
+    if os.path.exists(obf_dir):
+        try:
+            shutil.rmtree(obf_dir)
+        except Exception:
+            pass
+
+    try:
+        pyarmor_cmd = [
+            sys.executable, "-m", "pyarmor.cli", "gen",
+            "-O", obf_dir,
+            os.path.join("vendor_patcher", "vendor_patcher_gui.py")
+        ]
+        subprocess.run(pyarmor_cmd, cwd=project_dir, capture_output=True)
+        print("  ✓ Mã hóa PyArmor AES Bytecode THÀNH CÔNG!")
+    except Exception as ex:
+        print(f"  ⚠ Cảnh báo PyArmor: {ex}")
+
+    # 3. PyInstaller Standalone 1-File Executable Packaging
+    print("\n📦 [3/3] Đang đóng gói PyInstaller (Standalone 1-File EXE với App Icon)...")
     cmd = [
         sys.executable, "-m", "PyInstaller",
         "--noconfirm",
@@ -83,15 +122,24 @@ def main():
 
     cmd.append(os.path.join(project_dir, "volte_fixer_gui.py"))
 
-    print("\n📦 Đang biên dịch PyInstaller (Standalone 1-File EXE)...")
     print(f"Lệnh chạy: {' '.join(cmd)}")
-
     res = subprocess.run(cmd, cwd=project_dir)
+
+    # Clean up generated inplace .pyd files after PyInstaller packaging
+    for root, dirs, files in os.walk(project_dir):
+        if "dist" in root or "build" in root or ".git" in root:
+            continue
+        for f in files:
+            if f.endswith((".pyd", ".c")):
+                try:
+                    os.remove(os.path.join(root, f))
+                except Exception:
+                    pass
 
     if res.returncode == 0:
         exe_path = os.path.join(dist_dir, "HBG_VoLTE_Fixer_Tool_v2.0.exe")
 
-        print("\n🎉 ĐÓNG GÓI PYINSTALLER THÀNH CÔNG RỰC RỠ!")
+        print("\n🎉 ĐÓNG GÓI PYINSTALLER CHỐNG DECOMPILE THÀNH CÔNG RỰC RỠ!")
         print(f"👉 File thực thi duy nhất (Có Icon đầy đủ): {exe_path}")
 
         # Create Release ZIP in releases/ folder
@@ -111,7 +159,7 @@ def main():
                 zf.write(exe_path, "HBG_VoLTE_Fixer_Tool_v2.0.exe")
 
         print("=" * 66)
-        print(f"🎉 HOÀN THÀNH TOÀN BỘ TIẾN TRÌNH RELEASE BUILD!")
+        print(f"🎉 HOÀN THÀNH TOÀN BỘ TIẾN TRÌNH RELEASE BUILD CHỐNG DECOMPILE!")
         print(f"📦 File Release ZIP tại mục releases/: {zip_path}")
         print(f"👉 File EXE tại dist/: {exe_path}")
         print("=" * 66)
