@@ -76,7 +76,6 @@ def run_mtk_command(cmd_args: list, log_cb=print, timeout: int = 40) -> tuple[bo
             if _cancel_requested:
                 process.kill()
                 _current_brom_process = None
-                log_cb("🛑 Đã hủy tiến trình BROM theo yêu cầu!", "warning")
                 return False, "Cancelled"
 
             line = process.stdout.readline()
@@ -123,8 +122,6 @@ def run_brom_1click_all_in_one(working_dir: str, patch_engine_func, log_cb=print
     # -------------------------------------------------------------------------
     # STEP 1: WAIT FOR BROM CONNECTION & DUMP VENDOR
     # -------------------------------------------------------------------------
-    log_cb("⌛ Đang đứng chờ tín hiệu cắm cáp BROM... (Vui lòng cắm cáp USB)", "info")
-    
     connected_detected = False
     
     def log_filter_cb(msg_text: str, msg_type: str = "info"):

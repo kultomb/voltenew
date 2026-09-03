@@ -767,10 +767,9 @@ class VoLTEFixerApp(ctk.CTk):
         ]
         for btn in buttons:
             if btn is not None:
-                if btn == getattr(self, "btn_brom_1click", None) and getattr(self, "brom_running", False):
-                    btn.configure(state="normal")
-                else:
-                    btn.configure(state=state)
+                target_state = "normal" if (btn == getattr(self, "btn_brom_1click", None) and getattr(self, "brom_running", False)) else state
+                if btn.cget("state") != target_state:
+                    btn.configure(state=target_state)
 
     def on_closing(self):
         self.is_running = False
