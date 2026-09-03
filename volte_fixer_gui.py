@@ -622,30 +622,29 @@ class VoLTEFixerApp(ctk.CTk):
 
         while self.is_running:
             try:
-                if not self.is_working:
-                    devs, options = self.scan_all_connected_devices()
-                    sig = " | ".join(options)
-                    
-                    if sig != last_signature:
-                        last_signature = sig
-                        if devs:
-                            first = devs[0]
-                            if first["type"] == "adb":
-                                cur_id = first["id"]
-                                cur_model = first["model"]
-                                self.selected_device_id = cur_id
-                                self.devices = devs
-                                self.after(0, lambda m=cur_model, opts=options, cid=cur_id: self._on_device_connected(m, opts, cid))
-                            elif first["type"] == "com":
-                                com_port = first["id"]
-                                com_desc = first["model"]
-                                self.selected_device_id = None
-                                self.devices = devs
-                                self.after(0, lambda p=com_port, d=com_desc, opts=options: self._on_com_port_connected(p, d, opts))
-                        else:
-                            self.devices = []
+                devs, options = self.scan_all_connected_devices()
+                sig = " | ".join(options)
+                
+                if sig != last_signature:
+                    last_signature = sig
+                    if devs:
+                        first = devs[0]
+                        if first["type"] == "adb":
+                            cur_id = first["id"]
+                            cur_model = first["model"]
+                            self.selected_device_id = cur_id
+                            self.devices = devs
+                            self.after(0, lambda m=cur_model, opts=options, cid=cur_id: self._on_device_connected(m, opts, cid))
+                        elif first["type"] == "com":
+                            com_port = first["id"]
+                            com_desc = first["model"]
                             self.selected_device_id = None
-                            self.after(0, self._on_adb_disconnected)
+                            self.devices = devs
+                            self.after(0, lambda p=com_port, d=com_desc, opts=options: self._on_com_port_connected(p, d, opts))
+                    else:
+                        self.devices = []
+                        self.selected_device_id = None
+                        self.after(0, self._on_adb_disconnected)
 
                 time.sleep(1.0 if last_signature and "Chưa kết nối" not in last_signature else 2.0)
             except Exception:

@@ -29,7 +29,7 @@ def run_mtk_command(cmd_args: list, log_cb=print, timeout: int = 120) -> tuple[b
         return False, err_msg
 
     python_exe = sys.executable
-    full_cmd = [python_exe, MTK_CLIENT_PY] + cmd_args
+    full_cmd = [python_exe, "-u", MTK_CLIENT_PY] + cmd_args
     
     # Filter list for spam lines to ignore
     ignore_keywords = [
@@ -39,6 +39,9 @@ def run_mtk_command(cmd_args: list, log_cb=print, timeout: int = 120) -> tuple[b
         "status: handshake", "retrying...", "preloader - [lib]"
     ]
 
+    env = os.environ.copy()
+    env["PYTHONUNBUFFERED"] = "1"
+
     try:
         process = subprocess.Popen(
             full_cmd,
@@ -47,7 +50,8 @@ def run_mtk_command(cmd_args: list, log_cb=print, timeout: int = 120) -> tuple[b
             text=True,
             encoding="utf-8",
             errors="ignore",
-            cwd=os.path.dirname(MTK_CLIENT_PY)
+            cwd=os.path.dirname(MTK_CLIENT_PY),
+            env=env
         )
         
         output_lines = []
@@ -147,6 +151,7 @@ def run_brom_1click_all_in_one(working_dir: str, patch_engine_func, log_cb=print
         return False
 
     log_cb(f"📦 [BƯỚC 1/4]: Đang kết nối trực tiếp Cổng [{com_port}] để rút phôi Vendor...", "info")
+    log_cb(f"  ⚡ [BROM {com_port}]: Đang thực hiện kết nối Handshake & đọc phân vùng Vendor (Vui lòng giữ nguyên cáp USB)...", "info")
     
     # Pass --noreconnect to avoid re-triggering handshake on an active COM session
     vendor_args = ["r", "vendor", dump_vendor_path, "--serialport", com_port, "--noreconnect"]
