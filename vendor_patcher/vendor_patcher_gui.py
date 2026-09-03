@@ -181,9 +181,9 @@ class CustomerFriendlyVendorPatcherUI(tk.Tk):
                 self.log_msg(f"🎉 KÍCH HOẠT THÀNH CÔNG! Tệp đã nạp hoàn tất tại:")
                 self.log_msg(f"👉 {out_file}")
                 self.log_msg("\n👉 HƯỚNG DẪN NẠP LÊN ĐIỆN THOẠI BẰNG UNLOCKTOOL:")
-                self.log_msg("   1. Mở UnlockTool -> Tab MediaTek hoặc Qualcomm.")
-                self.log_msg(f"   2. Chọn tệp [{os.path.basename(out_file)}] vào phân vùng vendor.")
-                self.log_msg("   3. Bấm nút [FLASH] (Tia sét ⚡).")
+                self.log_msg("   1. Mở UnlockTool -> Tab MediaTek -> Bấm Boot Device.")
+                self.log_msg("   2. Nhấp chuột phải vào phân vùng Vendor -> Chọn Write.")
+                self.log_msg(f"   3. Trỏ tới tệp bản vá [{os.path.basename(out_file)}].")
                 messagebox.showinfo("Thành công", f"Đã tạo tệp vá Vendor VoLTE thành công!\n\nTệp đầu ra:\n{out_file}")
         except Exception as ex:
             self.log_msg(f"❌ Lỗi thực thi: {ex}")
