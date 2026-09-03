@@ -655,12 +655,11 @@ class VoLTEFixerApp(ctk.CTk):
         self.device_option.configure(values=options)
         self.device_option.set(options[0])
         self.lbl_model.configure(text=f"{com_desc}")
-        self.lbl_brand.configure(text="MediaTek / USB VCOM")
-        self.lbl_android.configure(text="BROM / Preloader Mode")
-        self.lbl_sim.configure(text="Phân vùng Vendor / Vbmeta")
-        self.lbl_ims.configure(text="Sẵn sàng Nạp 1-Click")
-        self.set_status(f"✓ Đã phát hiện Cổng COM {com_port}: {com_desc}", 1.0)
-        self.log(f"✓ Cổng COM {com_port} đã sẵn sàng: {com_desc}", "success")
+        self.lbl_brand.configure(text="---")
+        self.lbl_android.configure(text="---")
+        self.lbl_sim.configure(text="---")
+        self.lbl_ims.configure(text="---")
+        self.set_status(f"✓ Đã kết nối Cổng COM {com_port}: {com_desc}", 1.0)
 
     def _on_device_connected(self, model_name: str, options: list[str], dev_id: str):
         self.status_badge.configure(text="● Đã kết nối ADB", text_color=THEME["success"])
