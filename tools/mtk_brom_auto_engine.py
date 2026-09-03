@@ -1,6 +1,6 @@
 """
 MediaTek BROM 1-Click Automated Engine for HBG VoLTE & IMS Fixer
-Fast Low-Latency Windows Serial COM Port Listener + BROM Dump, Patch & Flash Pipeline.
+Native PreLoader VCOM Serial Listener + BROM Dump, Patch & Flash Pipeline.
 """
 
 import os
@@ -8,9 +8,7 @@ import sys
 import re
 import time
 import subprocess
-from threading import Thread
 
-# Path to local mtkclient engine
 MTK_CLIENT_DIR = r"C:\Users\CMD\Desktop\Tool android\mtkclient"
 MTK_CLIENT_PY = os.path.join(MTK_CLIENT_DIR, "mtk.py")
 
@@ -30,50 +28,8 @@ def cancel_brom_process():
         _current_brom_process = None
 
 
-def scan_for_mtk_com_port(timeout: float = 40.0, log_cb=print) -> str | None:
-    """
-    High-speed low-latency Windows COM Port Scanner (50ms loop).
-    Detects MediaTek PreLoader VCOM / MediaTek USB Port (VID 0E8D) instant connection.
-    Returns exact port string (e.g. 'COM5') or None if timed out / cancelled.
-    """
-    global _cancel_requested
-    try:
-        import serial.tools.list_ports
-    except ImportError:
-        log_cb("⚠ Thiếu thư viện pyserial để quét cổng COM.", "error")
-        return None
-
-    start_time = time.time()
-    existing_ports = set(p.device for p in serial.tools.list_ports.comports())
-
-    while time.time() - start_time < timeout:
-        if _cancel_requested:
-            return None
-
-        current_ports = list(serial.tools.list_ports.comports())
-        for p in current_ports:
-            dev = p.device
-            desc = (p.description or "").upper()
-            hwid = (p.hwid or "").upper()
-            vid = f"{p.vid:04X}" if p.vid else ""
-
-            # Check for MediaTek Vendor ID 0E8D or VCOM descriptions
-            is_mtk = (
-                "0E8D" in hwid or "0E8D" in vid or
-                "MEDIATEK" in desc or "PRELOADER" in desc or "VCOM" in desc or "MTK" in desc
-            )
-
-            if is_mtk or (dev not in existing_ports and ("USB" in desc or "SERIAL" in desc or "VCOM" in desc)):
-                log_cb(f"✓ Đã phát hiện cổng COM MediaTek [{dev} — {p.description}] thành công!", "success")
-                return dev
-
-        time.sleep(0.05)
-
-    return None
-
-
-def run_mtk_command(cmd_args: list[str], port_name: str | None = None, log_cb=print, timeout: float = 60.0) -> tuple[bool, str]:
-    """Runs mtk.py command using exact Windows Serial COM port for low latency."""
+def run_mtk_command(cmd_args: list[str], log_cb=print, timeout: float = 60.0) -> tuple[bool, str]:
+    """Runs mtk.py command with --serialport DETECT for direct PreLoader VCOM serial listening."""
     global _current_brom_process, _cancel_requested
     
     if not os.path.exists(MTK_CLIENT_PY):
@@ -82,20 +38,15 @@ def run_mtk_command(cmd_args: list[str], port_name: str | None = None, log_cb=pr
         return False, err_msg
 
     python_exe = sys.executable
-    full_cmd = [python_exe, MTK_CLIENT_PY]
-    
-    if port_name:
-        full_cmd.extend(["--serialport", port_name])
-    else:
-        full_cmd.extend(["--serialport", "DETECT"])
-        
-    full_cmd.extend(cmd_args)
+    # Always use --serialport DETECT to put mtkclient in instant PreLoader VCOM standing-by listener mode
+    full_cmd = [python_exe, MTK_CLIENT_PY, "--serialport", "DETECT"] + cmd_args
 
-    # Keywords to filter out noise & dot spam
+    # Keywords to filter out verbose loop hints & dot spam
     ignore_keywords = [
         "hint:", "power off", "for brom mode", "for preloader mode",
         "if it is already connected", "please reconnect mobile", "metamodes",
-        "couldn't get device configuration", "deviceclass", "[lib]:", "libusb", "usb.core"
+        "couldn't get device configuration", "deviceclass", "[lib]:", "libusb", "usb.core",
+        "waiting for preloader vcom", "retrying..."
     ]
 
     try:
@@ -112,6 +63,7 @@ def run_mtk_command(cmd_args: list[str], port_name: str | None = None, log_cb=pr
         
         output_lines = []
         start_time = time.time()
+        handshake_logged = False
         
         while True:
             if _cancel_requested:
@@ -129,6 +81,12 @@ def run_mtk_command(cmd_args: list[str], port_name: str | None = None, log_cb=pr
                 # Filter out pure dot lines (e.g. "...", "...........")
                 if clean_line and not re.match(r'^\.+$', clean_line):
                     lower_line = clean_line.lower()
+                    
+                    # Detect BROM Connection / Handshake success signal
+                    if not handshake_logged and any(k in lower_line for k in ["detected", "sync", "connected", "handshake", "chip", "target"]):
+                        handshake_logged = True
+                        log_cb("✓ Đã nhận diện cổng COM MediaTek & Handshake BROM thành công!", "success")
+                        
                     if not any(kw in lower_line for kw in ignore_keywords):
                         log_cb(f"  ⚡ {clean_line}", "info")
                     output_lines.append(clean_line)
@@ -153,7 +111,7 @@ def run_mtk_command(cmd_args: list[str], port_name: str | None = None, log_cb=pr
 def run_brom_1click_all_in_one(working_dir: str, patch_engine_func, log_cb=print) -> bool:
     """
     1-Click Automated BROM Engine:
-    Step 1: Low-latency scan for MediaTek COM Port -> Dump vendor & vbmeta
+    Step 1: Start PreLoader VCOM listener -> Wait for USB cable -> Dump vendor & vbmeta
     Step 2: Dynamic Auto-Patch vendor & disable vbmeta DM-Verity
     Step 3: Flash patched vendor & vbmeta back to phone
     Step 4: Reboot phone into Android
@@ -167,16 +125,12 @@ def run_brom_1click_all_in_one(working_dir: str, patch_engine_func, log_cb=print
     dump_vbmeta_path = os.path.join(working_dir, "BROM_dump_vbmeta.img")
 
     # -------------------------------------------------------------------------
-    # STEP 1: SCAN FOR COM PORT & DUMP VENDOR
+    # STEP 1: START PRELOADER VCOM LISTENER & DUMP VENDOR
     # -------------------------------------------------------------------------
-    log_cb("⌛ Đang đứng chờ cổng COM MediaTek... (Vui lòng tắt nguồn máy, giữ phím TĂNG + GIẢM ÂM LƯỢNG và CẮM CÁP USB)", "info")
+    log_cb("⌛ Đang đứng chờ cắm cáp BROM... (Vui lòng tắt nguồn máy, giữ phím TĂNG + GIẢM ÂM LƯỢNG và CẮM CÁP USB)", "info")
+    log_cb("📦 [BƯỚC 1/4]: Khởi chạy bộ lắng nghe PreLoader VCOM & Rút phân vùng Vendor...", "info")
     
-    port_found = scan_for_mtk_com_port(timeout=40.0, log_cb=log_cb)
-    if _cancel_requested:
-        return False
-
-    log_cb("📦 [BƯỚC 1/4]: Đang rút (Dump) phân vùng Vendor...", "info")
-    success_vendor, out_vendor = run_mtk_command(["r", "vendor", dump_vendor_path], port_name=port_found, log_cb=log_cb, timeout=90)
+    success_vendor, out_vendor = run_mtk_command(["r", "vendor", dump_vendor_path], log_cb=log_cb, timeout=60.0)
     
     if _cancel_requested:
         return False
@@ -189,7 +143,7 @@ def run_brom_1click_all_in_one(working_dir: str, patch_engine_func, log_cb=print
     
     # Dump vbmeta as well if possible
     log_cb("📦 Đang rút phân vùng Vbmeta bảo vệ...", "info")
-    run_mtk_command(["r", "vbmeta", dump_vbmeta_path], port_name=port_found, log_cb=log_cb, timeout=40)
+    run_mtk_command(["r", "vbmeta", dump_vbmeta_path], log_cb=log_cb, timeout=40.0)
 
     # -------------------------------------------------------------------------
     # STEP 2: AUTO PATCH VENDOR & VBMETA
@@ -209,7 +163,7 @@ def run_brom_1click_all_in_one(working_dir: str, patch_engine_func, log_cb=print
     # STEP 3: FLASH PATCHED VENDOR BACK TO PHONE
     # -------------------------------------------------------------------------
     log_cb("⚡ [BƯỚC 3/4]: Đang nạp lại Vendor bản vá vào điện thoại qua BROM...", "info")
-    success_flash, out_flash = run_mtk_command(["w", "vendor", patched_vendor_path], port_name=port_found, log_cb=log_cb, timeout=90)
+    success_flash, out_flash = run_mtk_command(["w", "vendor", patched_vendor_path], log_cb=log_cb, timeout=60.0)
     if not success_flash:
         log_cb("❌ Lỗi nạp lại Vendor vào điện thoại!", "error")
         return False
@@ -219,7 +173,7 @@ def run_brom_1click_all_in_one(working_dir: str, patch_engine_func, log_cb=print
     # STEP 4: REBOOT PHONE INTO ANDROID
     # -------------------------------------------------------------------------
     log_cb("🔄 [BƯỚC 4/4]: Đang gửi lệnh khởi động lại điện thoại vào Android...", "info")
-    run_mtk_command(["reset"], port_name=port_found, log_cb=log_cb, timeout=15)
+    run_mtk_command(["reset"], log_cb=log_cb, timeout=15.0)
     
     log_cb("🎉 QUY TRÌNH BROM 1-CLICK RÚT ➔ VÁ ➔ NẠP VENDOR HOÀN TẤT THÀNH CÔNG RỰC RỠ!", "success")
     return True
