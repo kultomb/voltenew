@@ -42,35 +42,57 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from volte_engine import VoLTEEngine
 
 # ---------------------------------------------------------------------------
-# Font System & Color Palette (Enterprise Dark Design System)
+# Font System & Color Palette (Windows 11 Fluent Design System & Glassmorphism Tokens)
 # ---------------------------------------------------------------------------
-FONT_FAMILY = ("Roboto", "Segoe UI", "Arial", "sans-serif")
-FONT_TITLE = (FONT_FAMILY[0], 19, "bold")
+FONT_FAMILY = ("Segoe UI Variable Text", "Segoe UI", "SF Pro Text", "Helvetica Neue", "Arial", "sans-serif")
+FONT_FAMILY_MONO = ("Consolas", "Segoe UI Mono", "Courier New", "monospace")
+
+FONT_TITLE = (FONT_FAMILY[0], 15, "bold")
 FONT_SUBTITLE = (FONT_FAMILY[0], 11)
+FONT_SECTION = (FONT_FAMILY[0], 12, "bold")
 FONT_CARD_TITLE = (FONT_FAMILY[0], 12, "bold")
 FONT_LABEL = (FONT_FAMILY[0], 11)
 FONT_LABEL_BOLD = (FONT_FAMILY[0], 11, "bold")
-FONT_BTN_MAIN = (FONT_FAMILY[0], 13, "bold")
+FONT_BTN_MAIN = (FONT_FAMILY[0], 12, "bold")
 FONT_BTN_GRID = (FONT_FAMILY[0], 11, "bold")
-FONT_MONO = ("Roboto Mono", 12, "bold")
+FONT_MONO = (FONT_FAMILY_MONO[0], 11)
 
 THEME = {
-    "bg_app": "#0d1117",
-    "bg_card": "#161b22",
-    "bg_card_hover": "#21262d",
-    "bg_inset": "#0b0e14",
-    "border": "#30363d",
-    "border_highlight": "#38bdf8",
-    "text_primary": "#ffffff",
-    "text_secondary": "#cbd5e1",
-    "text_muted": "#94a3b8",
-    "accent_blue": "#38bdf8",
-    "accent_indigo": "#6366f1",
-    "accent_cyan": "#38bdf8",
-    "success": "#10b981",
-    "success_hover": "#059669",
-    "warning": "#d97706",
-    "danger": "#f43f5e",
+    # Layered Surfaces (Windows 11 Dark Mode Charcoal / Near-Black)
+    "bg_app": "#181818",           # Near-black main application background
+    "bg_card": "#242424",          # Glass Card surface (1 level lighter)
+    "bg_card_hover": "#2d2d30",    # Glass Card hover state
+    "bg_inset": "#1c1c1c",         # Inset Surface (Log viewer & Info box)
+    
+    # Low-Contrast Glass Borders
+    "border": "#333338",           # Subtle low-contrast card border
+    "border_glass": "#3f3f46",     # Glass border
+    "border_highlight": "#0078d4", # Primary focus highlight
+    
+    # Typography Colors
+    "text_primary": "#f4f4f5",     # High contrast clean white text
+    "text_secondary": "#a1a1aa",   # Muted gray text
+    "text_muted": "#71717a",       # Low priority text
+    "text_dim": "#52525b",         # Timestamp muted text
+    
+    # Primary Accent (Windows 11 Accent Blue)
+    "primary_accent": "#0078d4",   # Windows 11 Blue
+    "primary_hover": "#0063b1",    # Hover Blue
+    "primary_pressed": "#004578",  # Pressed Blue
+    
+    # Unified Dark Glass Button Tokens
+    "btn_glass_bg": "#2d2d30",
+    "btn_glass_hover": "#3a3a3d",
+    "btn_glass_border": "#3f3f46",
+    
+    # Semantic State Colors (Color communicates state ONLY!)
+    "success": "#16a34a",          # Muted Green
+    "success_hover": "#15803d",
+    "warning": "#d97706",          # Amber
+    "warning_hover": "#b45309",
+    "danger": "#dc2626",           # Muted Red
+    "danger_hover": "#b91c1c",
+    "info": "#0078d4",             # Accent Blue
 }
 
 
@@ -174,14 +196,14 @@ class VoLTEFixerApp(ctk.CTk):
         header = ctk.CTkFrame(
             self.main_container,
             fg_color=THEME["bg_card"],
-            corner_radius=12,
+            corner_radius=10,
             border_width=1,
             border_color=THEME["border"]
         )
-        header.pack(fill="x")
+        header.pack(fill="x", pady=(0, 8))
 
         inner = ctk.CTkFrame(header, fg_color="transparent")
-        inner.pack(fill="x", padx=16, pady=10)
+        inner.pack(fill="x", padx=16, pady=8)
 
         title_frame = ctk.CTkFrame(inner, fg_color="transparent")
         title_frame.pack(side="left")
@@ -197,46 +219,55 @@ class VoLTEFixerApp(ctk.CTk):
         )
         title_lbl.pack(side="left")
 
+        ver_lbl = ctk.CTkLabel(
+            title_row,
+            text="v3.6.6",
+            font=FONT_SUBTITLE,
+            text_color=THEME["text_muted"]
+        )
+        ver_lbl.pack(side="left", padx=(8, 0))
+
         btn_frame = ctk.CTkFrame(inner, fg_color="transparent")
         btn_frame.pack(side="right")
 
+        # STATUS INDICATOR LABEL (Status element, not a button)
         self.status_badge = ctk.CTkLabel(
             btn_frame,
             text="● Chưa kết nối ADB",
             font=FONT_LABEL_BOLD,
-            text_color=THEME["danger"],
+            text_color=THEME["warning"],
             fg_color=THEME["bg_inset"],
-            corner_radius=16,
-            padx=12,
-            pady=4
+            corner_radius=6,
+            padx=10,
+            pady=3
         )
-        self.status_badge.pack(side="left", padx=(0, 6))
+        self.status_badge.pack(side="left", padx=(0, 8))
 
+        # Unified Header Action Buttons (Same height 32, radius 8, glass design language)
         self.btn_refresh = ctk.CTkButton(
             btn_frame,
-            text="↻",
-            font=(FONT_FAMILY[0], 15, "bold"),
-            fg_color=THEME["bg_card_hover"],
-            hover_color=THEME["border"],
+            text="↻ Refresh",
+            font=FONT_LABEL_BOLD,
+            fg_color=THEME["btn_glass_bg"],
+            hover_color=THEME["btn_glass_hover"],
             border_width=1,
-            border_color=THEME["border"],
-            text_color=THEME["accent_cyan"],
-            width=34,
+            border_color=THEME["btn_glass_border"],
+            text_color=THEME["text_primary"],
             height=32,
             corner_radius=8,
             command=self.refresh_devices_manual
         )
-        self.btn_refresh.pack(side="left", padx=(0, 8))
+        self.btn_refresh.pack(side="left", padx=(0, 6))
 
         self.btn_live_screen = ctk.CTkButton(
             btn_frame,
             text="📱 Live Screen 60 FPS",
             font=FONT_LABEL_BOLD,
-            fg_color=THEME["bg_card_hover"],
-            hover_color=THEME["border"],
+            fg_color=THEME["btn_glass_bg"],
+            hover_color=THEME["btn_glass_hover"],
             border_width=1,
-            border_color=THEME["accent_cyan"],
-            text_color=THEME["accent_cyan"],
+            border_color=THEME["primary_accent"],
+            text_color=THEME["text_primary"],
             height=32,
             corner_radius=8,
             command=self.toggle_standalone_mirror
@@ -247,9 +278,11 @@ class VoLTEFixerApp(ctk.CTk):
             btn_frame,
             text="❤️ DONATE 🍼",
             font=FONT_LABEL_BOLD,
-            fg_color="#f43f5e",
-            hover_color="#e11d48",
-            text_color="#ffffff",
+            fg_color=THEME["btn_glass_bg"],
+            hover_color=THEME["btn_glass_hover"],
+            border_width=1,
+            border_color=THEME["btn_glass_border"],
+            text_color=THEME["text_primary"],
             height=32,
             corner_radius=8,
             command=self.open_donate_dialog
@@ -262,11 +295,13 @@ class VoLTEFixerApp(ctk.CTk):
 
         self.btn_hangho = ctk.CTkButton(
             btn_frame,
-            text="🛒 HangHo.com (PM Bán Hàng)",
+            text="🛒 HangHo.com",
             font=FONT_LABEL_BOLD,
-            fg_color="#10b981",
-            hover_color="#059669",
-            text_color="#ffffff",
+            fg_color=THEME["btn_glass_bg"],
+            hover_color=THEME["btn_glass_hover"],
+            border_width=1,
+            border_color=THEME["btn_glass_border"],
+            text_color=THEME["text_primary"],
             height=32,
             corner_radius=8,
             command=open_hangho_web
@@ -274,21 +309,21 @@ class VoLTEFixerApp(ctk.CTk):
         self.btn_hangho.pack(side="left")
 
     def _build_device_card(self, parent):
-        card = ctk.CTkFrame(parent, fg_color=THEME["bg_card"], corner_radius=12, border_width=1, border_color=THEME["border"])
-        card.pack(fill="x", pady=(0, 6))
+        card = ctk.CTkFrame(parent, fg_color=THEME["bg_card"], corner_radius=10, border_width=1, border_color=THEME["border"])
+        card.pack(fill="x", pady=(0, 8))
 
         inner = ctk.CTkFrame(card, fg_color="transparent")
-        inner.pack(fill="x", padx=12, pady=6)
+        inner.pack(fill="x", padx=14, pady=8)
 
-        # Header Row: Title on Left, Device Selector Dropdown on Right
+        # Header Row: Section Title on Left, Device Selector Dropdown on Right
         top_row = ctk.CTkFrame(inner, fg_color="transparent")
-        top_row.pack(fill="x", pady=(0, 4))
+        top_row.pack(fill="x", pady=(0, 6))
 
         ctk.CTkLabel(
             top_row,
             text="📱 THIẾT BỊ KẾT NỐI",
-            font=FONT_CARD_TITLE,
-            text_color=THEME["accent_cyan"]
+            font=FONT_SECTION,
+            text_color=THEME["primary_accent"]
         ).pack(side="left")
 
         self.device_option = ctk.CTkOptionMenu(
@@ -298,10 +333,10 @@ class VoLTEFixerApp(ctk.CTk):
             font=FONT_LABEL,
             dropdown_font=FONT_LABEL,
             fg_color=THEME["bg_inset"],
-            button_color=THEME["bg_card_hover"],
-            button_hover_color=THEME["border"],
+            button_color=THEME["btn_glass_bg"],
+            button_hover_color=THEME["btn_glass_hover"],
             dropdown_fg_color=THEME["bg_card"],
-            dropdown_hover_color=THEME["bg_card_hover"],
+            dropdown_hover_color=THEME["btn_glass_hover"],
             dropdown_text_color=THEME["text_primary"],
             text_color=THEME["text_primary"],
             height=28,
@@ -309,12 +344,12 @@ class VoLTEFixerApp(ctk.CTk):
         )
         self.device_option.pack(side="right", fill="x", expand=True, padx=(12, 0))
 
-        # Compact Info Bar (3 Columns x 2 Rows)
+        # Metadata Info Bar (3 Columns x 2 Rows)
         self.info_frame = ctk.CTkFrame(inner, fg_color=THEME["bg_inset"], corner_radius=8, border_width=1, border_color=THEME["border"])
         self.info_frame.pack(fill="x")
 
         info_grid = ctk.CTkFrame(self.info_frame, fg_color="transparent")
-        info_grid.pack(fill="x", padx=8, pady=3)
+        info_grid.pack(fill="x", padx=10, pady=4)
         info_grid.columnconfigure(0, weight=1)
         info_grid.columnconfigure(1, weight=1)
         info_grid.columnconfigure(2, weight=1)
@@ -336,7 +371,7 @@ class VoLTEFixerApp(ctk.CTk):
         return val_lbl
 
     def _build_actions_panel(self, parent):
-        card = ctk.CTkFrame(parent, fg_color=THEME["bg_card"], corner_radius=12, border_width=1, border_color=THEME["border"])
+        card = ctk.CTkFrame(parent, fg_color=THEME["bg_card"], corner_radius=10, border_width=1, border_color=THEME["border"])
         card.pack(fill="both", expand=True)
 
         inner = ctk.CTkFrame(card, fg_color="transparent")
@@ -345,75 +380,82 @@ class VoLTEFixerApp(ctk.CTk):
         ctk.CTkLabel(
             inner,
             text="⚙ CÔNG CỤ KÍCH HOẠT",
-            font=FONT_CARD_TITLE,
-            text_color=THEME["accent_cyan"]
-        ).pack(anchor="w", pady=(0, 8))
+            font=FONT_SECTION,
+            text_color=THEME["primary_accent"]
+        ).pack(anchor="w", pady=(0, 10))
 
-        # Button 1: 1-Click Auto Fix Button
+        # Button 1: Primary Action (Accent Blue)
         self.btn_all_in_one = ctk.CTkButton(
             inner,
-            text="KÍCH HOẠT VOLTE TỰ ĐỘNG (1-CLICK FIX)",
+            text="⚡ KÍCH HOẠT VOLTE TỰ ĐỘNG (1-CLICK FIX)",
             font=FONT_BTN_MAIN,
-            fg_color=THEME["success"],
-            hover_color=THEME["success_hover"],
+            fg_color=THEME["primary_accent"],
+            hover_color=THEME["primary_hover"],
+            text_color="#ffffff",
             height=42,
-            corner_radius=10,
+            corner_radius=8,
             command=self.action_fix_all_in_one
         )
         self.btn_all_in_one.pack(fill="x", pady=(0, 8))
 
-        # Button BROM 1-Click: MediaTek BROM Auto Dump -> Patch -> Flash Engine (Dynamic Toggle Button)
+        # Button 2: BROM 1-Click Auto Engine (Dynamic Toggle Button)
         self.btn_brom_1click = ctk.CTkButton(
             inner,
             text="⚡ BROM 1-CLICK: TỰ ĐỘNG RÚT ➔ VÁ ➔ NẠP VENDOR (MTK BROM)",
             font=FONT_BTN_MAIN,
-            fg_color="#d97706",
-            hover_color="#b45309",
-            text_color="#ffffff",
-            height=44,
-            corner_radius=10,
+            fg_color=THEME["btn_glass_bg"],
+            hover_color=THEME["btn_glass_hover"],
+            border_width=1,
+            border_color=THEME["primary_accent"],
+            text_color=THEME["text_primary"],
+            height=42,
+            corner_radius=8,
             command=self.action_brom_1click_all_in_one
         )
         self.btn_brom_1click.pack(fill="x", pady=(0, 8))
 
-        # Button 2: Vivo VoLTE Switch Opener (All Android Versions)
+        # Button 3: Vivo VoLTE Switch Opener
         self.btn_vivo_fix = ctk.CTkButton(
             inner,
             text="📱 BẬT VOLTE & CÔNG TẮC VIVO",
             font=FONT_BTN_GRID,
-            fg_color="#0284c7",
-            hover_color="#0369a1",
-            text_color="#ffffff",
+            fg_color=THEME["btn_glass_bg"],
+            hover_color=THEME["btn_glass_hover"],
+            border_width=1,
+            border_color=THEME["btn_glass_border"],
+            text_color=THEME["text_primary"],
             height=40,
             corner_radius=8,
             command=self.action_fix_vivo_volte
         )
         self.btn_vivo_fix.pack(fill="x", pady=(0, 8))
 
-        # Button 3: Universal Vendor VoLTE Patcher (Direct In-App File Picker)
+        # Button 4: Universal Vendor VoLTE Patcher
         self.btn_vendor_oppo = ctk.CTkButton(
             inner,
-            text="TẠO TỆP VÁ VENDOR VOLTE (DUMP/PATCH)",
+            text="🛠️ TẠO TỆP VÁ VENDOR VOLTE (DUMP/PATCH)",
             font=FONT_BTN_GRID,
-            fg_color=THEME["accent_indigo"],
-            hover_color=THEME["bg_card_hover"],
-            text_color="#ffffff",
+            fg_color=THEME["btn_glass_bg"],
+            hover_color=THEME["btn_glass_hover"],
+            border_width=1,
+            border_color=THEME["btn_glass_border"],
+            text_color=THEME["text_primary"],
             height=40,
             corner_radius=8,
             command=self.action_nap_vendor_oppo_series
         )
         self.btn_vendor_oppo.pack(fill="x", pady=(0, 8))
 
-        # Button 3: Secret Dial Codes Button
+        # Button 5: Secret Dial Codes Button
         self.btn_secret_codes = ctk.CTkButton(
             inner,
-            text="BẢNG MÃ BÍ MẬT DIAL CODES CÁC HÃNG",
+            text="🔑 BẢNG MÃ BÍ MẬT DIAL CODES CÁC HÃNG",
             font=FONT_BTN_GRID,
-            fg_color=THEME["bg_card_hover"],
-            hover_color=THEME["border"],
+            fg_color=THEME["btn_glass_bg"],
+            hover_color=THEME["btn_glass_hover"],
             border_width=1,
-            border_color=THEME["border"],
-            text_color=THEME["accent_cyan"],
+            border_color=THEME["btn_glass_border"],
+            text_color=THEME["text_primary"],
             height=40,
             corner_radius=8,
             command=self.open_secret_codes_dialog
@@ -421,7 +463,7 @@ class VoLTEFixerApp(ctk.CTk):
         self.btn_secret_codes.pack(fill="x")
 
     def _build_progress_bar(self, parent):
-        prog_card = ctk.CTkFrame(parent, fg_color=THEME["bg_card"], corner_radius=12, border_width=1, border_color=THEME["border"])
+        prog_card = ctk.CTkFrame(parent, fg_color=THEME["bg_card"], corner_radius=10, border_width=1, border_color=THEME["border"])
         prog_card.pack(fill="x", pady=(0, 8))
 
         inner = ctk.CTkFrame(prog_card, fg_color="transparent")
@@ -433,8 +475,8 @@ class VoLTEFixerApp(ctk.CTk):
         ctk.CTkLabel(
             status_bar,
             text="⚡ TIẾN TRÌNH",
-            font=FONT_CARD_TITLE,
-            text_color=THEME["accent_cyan"]
+            font=FONT_SECTION,
+            text_color=THEME["primary_accent"]
         ).pack(side="left")
 
         self.lbl_status = ctk.CTkLabel(
@@ -450,26 +492,26 @@ class VoLTEFixerApp(ctk.CTk):
             height=6,
             corner_radius=3,
             fg_color=THEME["bg_inset"],
-            progress_color=THEME["accent_cyan"]
+            progress_color=THEME["primary_accent"]
         )
         self.progress_bar.pack(fill="x")
         self.progress_bar.set(0)
 
     def _build_log_console(self, parent):
-        log_card = ctk.CTkFrame(parent, fg_color=THEME["bg_card"], corner_radius=12, border_width=1, border_color=THEME["border"])
+        log_card = ctk.CTkFrame(parent, fg_color=THEME["bg_card"], corner_radius=10, border_width=1, border_color=THEME["border"])
         log_card.pack(fill="both", expand=True)
 
         inner = ctk.CTkFrame(log_card, fg_color="transparent")
         inner.pack(fill="both", expand=True, padx=14, pady=10)
 
         title_row = ctk.CTkFrame(inner, fg_color="transparent")
-        title_row.pack(fill="x", pady=(0, 4))
+        title_row.pack(fill="x", pady=(0, 6))
 
         ctk.CTkLabel(
             title_row,
             text="📋 NHẬT KÝ THỰC THI",
-            font=FONT_CARD_TITLE,
-            text_color=THEME["accent_cyan"]
+            font=FONT_SECTION,
+            text_color=THEME["primary_accent"]
         ).pack(side="left")
 
         self.txt_log = ctk.CTkTextbox(
@@ -720,22 +762,28 @@ class VoLTEFixerApp(ctk.CTk):
     # ---------------------------------------------------------------------------
     def log(self, message: str, level: str = "info"):
         now = datetime.datetime.now().strftime("[%H:%M:%S]")
-        line = f"{now} [{level.upper()}] {message}\n"
-        self.after(0, lambda: self._append_log_to_txt(line, level))
+        self.after(0, lambda: self._append_log_to_txt(now, level.upper(), message))
 
-    def _append_log_to_txt(self, line: str, level: str = "info"):
+    def _append_log_to_txt(self, time_str: str, level_str: str, message: str):
         if hasattr(self, "txt_log") and self.txt_log:
             self.txt_log.configure(state="normal")
             
-            # Anti-glare eye-soothing color tags
-            if "tag_info" not in self.txt_log.tag_names():
-                self.txt_log.tag_config("tag_info", foreground="#38bdf8")     # Soft Sky Blue
-                self.txt_log.tag_config("tag_success", foreground="#34d399")  # Soft Emerald Green
-                self.txt_log.tag_config("tag_warning", foreground="#fbbf24")  # Warm Amber Gold
-                self.txt_log.tag_config("tag_error", foreground="#f87171")    # Gentle Coral Red
+            # Configure tag styles if not initialized
+            if "tag_timestamp" not in self.txt_log.tag_names():
+                self.txt_log.tag_config("tag_timestamp", foreground=THEME["text_dim"])
+                self.txt_log.tag_config("tag_msg", foreground=THEME["text_primary"])
+                self.txt_log.tag_config("tag_info", foreground=THEME["primary_accent"])
+                self.txt_log.tag_config("tag_success", foreground=THEME["success"])
+                self.txt_log.tag_config("tag_warning", foreground=THEME["warning"])
+                self.txt_log.tag_config("tag_error", foreground=THEME["danger"])
 
-            tag_name = f"tag_{level.lower()}" if f"tag_{level.lower()}" in self.txt_log.tag_names() else "tag_info"
-            self.txt_log.insert("end", line, tag_name)
+            tag_name = f"tag_{level_str.lower()}" if f"tag_{level_str.lower()}" in self.txt_log.tag_names() else "tag_info"
+            
+            # Section 7 Rule: Do NOT color full line. Only highlight timestamp / level tag.
+            self.txt_log.insert("end", f"{time_str} ", "tag_timestamp")
+            self.txt_log.insert("end", f"[{level_str}] ", tag_name)
+            self.txt_log.insert("end", f"{message}\n", "tag_msg")
+            
             self.txt_log.see("end")
             self.txt_log.configure(state="disabled")
 
@@ -797,8 +845,9 @@ class VoLTEFixerApp(ctk.CTk):
         if hasattr(self, "btn_brom_1click"):
             self.btn_brom_1click.configure(
                 text="⚡ BROM 1-CLICK: TỰ ĐỘNG RÚT ➔ VÁ ➔ NẠP VENDOR (MTK BROM)",
-                fg_color="#d97706",
-                hover_color="#b45309",
+                fg_color=THEME["btn_glass_bg"],
+                hover_color=THEME["btn_glass_hover"],
+                border_color=THEME["primary_accent"],
                 state="normal"
             )
         self.is_working = False
@@ -818,12 +867,13 @@ class VoLTEFixerApp(ctk.CTk):
         self.brom_running = True
         self.is_working = True
         
-        # Transform button into RED STOP BUTTON
+        # Transform button into RED DANGER STOP BUTTON
         if hasattr(self, "btn_brom_1click"):
             self.btn_brom_1click.configure(
                 text="🛑 DỪNG TIẾN TRÌNH BROM (STOP)",
-                fg_color="#dc2626",
-                hover_color="#991b1b",
+                fg_color=THEME["danger"],
+                hover_color=THEME["danger_hover"],
+                border_color=THEME["danger"],
                 state="normal"
             )
             
@@ -852,8 +902,9 @@ class VoLTEFixerApp(ctk.CTk):
         if hasattr(self, "btn_brom_1click"):
             self.btn_brom_1click.configure(
                 text="⚡ BROM 1-CLICK: TỰ ĐỘNG RÚT ➔ VÁ ➔ NẠP VENDOR (MTK BROM)",
-                fg_color="#d97706",
-                hover_color="#b45309",
+                fg_color=THEME["btn_glass_bg"],
+                hover_color=THEME["btn_glass_hover"],
+                border_color=THEME["primary_accent"],
                 state="normal"
             )
         self._on_action_completed(success, "BROM 1-Click VoLTE Auto Engine")
