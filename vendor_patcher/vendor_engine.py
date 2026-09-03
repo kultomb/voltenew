@@ -68,6 +68,8 @@ def inspect_vendor_metadata(input_file: str) -> dict:
         "allow_raw_offset_injection": False
     }
 
+    fname = os.path.basename(input_file).lower() if input_file else ""
+
     # 1. Check connected ADB device first (Online Priority)
     try:
         import subprocess
@@ -149,7 +151,6 @@ def inspect_vendor_metadata(input_file: str) -> dict:
             pass
 
     # Classify Device Family strictly by model string or file name
-    fname = os.path.basename(input_file).lower()
     model_str = meta["model"].lower()
 
     if "f11" in model_str or "f11" in fname or "cph1911" in model_str or "cph1913" in model_str or "18161" in model_str:
