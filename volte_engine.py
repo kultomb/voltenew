@@ -125,7 +125,7 @@ class VoLTEEngine:
             return -1, "", str(e)
 
     def get_devices(self) -> List[Dict[str, str]]:
-        """Get connected devices list."""
+        """Get connected devices list with dynamic brand and model detection."""
         try:
             cmd = [self.adb_path, "devices"]
             kwargs = {"capture_output": True, "text": True, "timeout": 15}
@@ -136,9 +136,29 @@ class VoLTEEngine:
             for line in (res.stdout or "").splitlines():
                 parts = line.strip().split()
                 if len(parts) >= 2 and parts[1] == "device":
+                    dev_id = parts[0]
+                    _, model, _ = self.run_command(["shell", "getprop", "ro.product.model"], dev_id, timeout=3)
+                    _, brand, _ = self.run_command(["shell", "getprop", "ro.product.brand"], dev_id, timeout=3)
+                    _, marketname, _ = self.run_command(["shell", "getprop", "ro.product.marketname"], dev_id, timeout=3)
+
+                    model = (model or "").strip()
+                    brand = (brand or "").strip().capitalize()
+                    marketname = (marketname or "").strip()
+
+                    dev_name = ""
+                    if marketname and marketname != "Không xác định":
+                        dev_name = marketname
+                    elif model and model != "Không xác định":
+                        if brand and brand != "Unknown" and not model.lower().startswith(brand.lower()):
+                            dev_name = f"{brand} {model}"
+                        else:
+                            dev_name = model
+                    else:
+                        dev_name = dev_id
+
                     devices.append({
-                        "id": parts[0],
-                        "model": "OPPO A31",
+                        "id": dev_id,
+                        "model": dev_name,
                         "product": ""
                     })
             return devices
@@ -151,6 +171,7 @@ class VoLTEEngine:
         info = {
             "model": "Unknown",
             "brand": "Unknown",
+            "marketname": "",
             "android_ver": "Unknown",
             "sdk": "Unknown",
             "operator": "Chưa rõ",
@@ -168,14 +189,17 @@ class VoLTEEngine:
 
         _, model, _ = self.run_command(["shell", "getprop", "ro.product.model"], device_id, timeout=4)
         _, brand, _ = self.run_command(["shell", "getprop", "ro.product.brand"], device_id, timeout=4)
+        _, marketname, _ = self.run_command(["shell", "getprop", "ro.product.marketname"], device_id, timeout=4)
         _, ver, _ = self.run_command(["shell", "getprop", "ro.build.version.release"], device_id, timeout=4)
         _, sdk, _ = self.run_command(["shell", "getprop", "ro.build.version.sdk"], device_id, timeout=4)
         _, platform_chip, _ = self.run_command(["shell", "getprop", "ro.board.platform"], device_id, timeout=4)
 
+        if marketname and marketname != "Không xác định":
+            info["marketname"] = marketname.strip()
         if model and model != "Không xác định":
-            info["model"] = model
+            info["model"] = model.strip()
         if brand:
-            info["brand"] = brand.capitalize()
+            info["brand"] = brand.strip().capitalize()
         if ver:
             info["android_ver"] = f"Android {ver}"
         if sdk:
@@ -533,7 +557,8 @@ class VoLTEEngine:
                 log_cb("📌 Phát hiện OPPO / Realme / Chipset MTK: Đang tự động nạp cấu hình hệ thống chuyên biệt...", "warning")
 
             elif info.get("is_vivo"):
-                log_cb("📱 Phát hiện Vivo / iQOO: Đang tự động nạp cấu hình giao diện hệ thống...", "info")
+                log_cb("📱 Phát hiện Vivo / iQOO: Đang tự động nạp cấu hình giao diện hệ thống & bật công tắc VoLTE HD...", "info")
+                self.fix_vivo_volte(device_id, log_cb)
 
             self.fix_system_props(device_id, log_cb)
             time.sleep(0.5)
@@ -833,6 +858,95 @@ class VoLTEEngine:
             log_cb("› [Vivo / Honor / Motorola / Khác] Gửi mã *#*#4636#*#* (RadioInfo)...", "info")
 
         return self.open_radio_info_menu(device_id, log_cb)
+
+    def fix_vivo_volte(self, device_id: str, log_cb: Optional[Callable[[str, str], None]] = None) -> bool:
+        """
+        Specialized Vivo / iQOO (Funtouch OS 9/10/11 - Android 9+) VoLTE Activator.
+        Overrides Vivo specific system properties, settings DB, broadcast intents,
+        and launches the Mobile Network / VoLTE switch settings activity directly.
+        """
+        if log_cb:
+            log_cb("📱 [Vivo Engine] Đang nạp cấu hình chuyên biệt ép hiện công tắc VoLTE HD cho Vivo / iQOO...", "info")
+
+        # 1. Unlock Vivo ADB restrictions
+        self.run_command(["shell", "setprop", "persist.vivo.adb.security", "0"], device_id, timeout=3)
+        self.run_command(["shell", "settings", "put", "global", "adb_security_input", "1"], device_id, timeout=3)
+
+        # 2. Vivo specific props
+        vivo_props = [
+            ("persist.radio.vivo.volte", "1"),
+            ("persist.sys.vivo.volte", "1"),
+            ("persist.vivo.volte_support", "1"),
+            ("persist.radio.volte_state", "3"),
+            ("persist.sys.volte.enable", "1"),
+            ("persist.sys.cust.vivo.volte", "1"),
+            ("persist.radio.volte_vt", "1"),
+            ("persist.radio.volte_pro_sub0", "1"),
+            ("persist.radio.volte_pro_sub1", "1"),
+        ]
+        for prop, val in vivo_props:
+            self.run_command(["shell", "setprop", prop, val], device_id, timeout=3)
+
+        # 3. Vivo Settings DB keys
+        vivo_settings = [
+            ("global", "volte_vt_enabled", "1"),
+            ("global", "volte_vt_enabled_sub0", "1"),
+            ("global", "volte_vt_enabled_sub1", "1"),
+            ("global", "enhanced_4g_mode_enabled", "1"),
+            ("secure", "enhanced_4g_mode_enabled", "1"),
+            ("system", "enhanced_4g_mode_enabled", "1"),
+            ("global", "display_volte_switch", "1"),
+            ("system", "vivo_volte_enabled", "1"),
+            ("system", "vivo_volte_state", "1"),
+            ("global", "editable_enhanced_4g_lte_bool", "1"),
+            ("global", "hide_enhanced_4g_lte_bool", "0"),
+        ]
+        for ns, key, val in vivo_settings:
+            self.run_command(["shell", "settings", "put", ns, key, val], device_id, timeout=3)
+
+        # 4. CarrierConfig Overrides
+        active_subs = self.get_active_sub_ids(device_id)
+        for sub in set(active_subs + ["0", "1", "-1"]):
+            self.run_command(["shell", "cmd", "phone", "cc", "set-override", "--sub", str(sub), "hide_enhanced_4g_lte_bool", "false"], device_id, timeout=2)
+            self.run_command(["shell", "cmd", "phone", "cc", "set-override", "--sub", str(sub), "editable_enhanced_4g_lte_bool", "true"], device_id, timeout=2)
+            self.run_command(["shell", "cmd", "phone", "cc", "set-override", "--sub", str(sub), "carrier_volte_available_bool", "true"], device_id, timeout=2)
+            self.run_command(["shell", "cmd", "phone", "cc", "set-override", "--sub", str(sub), "carrier_volte_provisioning_required_bool", "false"], device_id, timeout=2)
+
+        # 5. Broadcast Vivo / Mediatek Intents
+        broadcasts = [
+            ["shell", "am", "broadcast", "-a", "com.vivo.intent.action.VOLTE_SETTING", "--ei", "enable", "1"],
+            ["shell", "am", "broadcast", "-a", "com.mediatek.intent.action.IMS_SETTING", "--ei", "enable", "1"],
+            ["shell", "am", "broadcast", "-a", "com.mediatek.intent.action.VOLTE_SETTING", "--ei", "enable", "1", "--ei", "sim_id", "0"],
+            ["shell", "am", "broadcast", "-a", "com.mediatek.intent.action.VOLTE_SETTING", "--ei", "enable", "1", "--ei", "sim_id", "1"],
+            ["shell", "am", "broadcast", "-a", "android.intent.action.MEDIA_TEK_VOLTE_CHANGE", "--ei", "enable", "1"],
+        ]
+        for bcmd in broadcasts:
+            self.run_command(bcmd, device_id, timeout=3)
+
+        # 6. Auto-Launch Vivo Mobile Network / VoLTE HD Settings Activity directly on phone screen
+        if log_cb:
+            log_cb("🚀 Đang tự động mở ngay màn hình Cài Đặt VoLTE HD trên điện thoại Vivo...", "info")
+
+        # Wake up screen
+        self.run_command(["shell", "input", "keyevent", "224"], device_id, timeout=2)
+        self.run_command(["shell", "wm", "dismiss-keyguard"], device_id, timeout=2)
+
+        vivo_launch_cmds = [
+            ["shell", "am", "start", "-a", "android.settings.DATA_ROAMING_SETTINGS"],
+            ["shell", "am", "start", "-n", "com.android.phone/.MobileNetworkSettings"],
+            ["shell", "am", "start", "-n", "com.android.settings/.Settings$MobileNetworkSettingsActivity"],
+            ["shell", "am", "start", "-n", "com.vivo.upside/.Testing"],
+            ["shell", "am", "broadcast", "-a", "android.provider.Telephony.SECRET_CODE", "-d", "secret_code://86436"],
+            ["shell", "am", "broadcast", "-a", "android.provider.Telephony.SECRET_CODE", "-d", "secret_code://4838"],
+        ]
+        for lcmd in vivo_launch_cmds:
+            code, out, err = self.run_command(lcmd, device_id, timeout=3)
+            if self._is_am_start_success(code, out, err):
+                break
+
+        if log_cb:
+            log_cb("✓ Đã ép bật thành công cấu hình VoLTE Vivo & hiện công tắc trên điện thoại!", "success")
+        return True
 
     def launch_secret_code(self, device_id: str, code_str: str, log_cb: Optional[Callable[[str, str], None]] = None) -> bool:
         """Launch ANY Secret Code (*#*#4636#*#*, *#800#, *#801#, *#808#, *#*#3646633#*#*, etc.) directly on phone."""
@@ -1303,7 +1417,7 @@ class VoLTEEngine:
     def dump_framework_files(self, device_id: str, output_dir: str, log_cb: Optional[Callable[[str, str], None]] = None) -> List[str]:
         """Pull telephony framework JAR files from device to PC for JADX decompilation."""
         if log_cb:
-            log_cb("📦 Bắt đầu trích xuất tệp Framework hệ thống OPPO A5s về PC...", "info")
+            log_cb("📦 Bắt đầu trích xuất tệp Framework hệ thống thiết bị về PC...", "info")
 
         os.makedirs(output_dir, exist_ok=True)
         target_jars = [
@@ -1351,7 +1465,7 @@ class VoLTEEngine:
                 log_cb("  • Hãng OPPO đã khóa/xóa màn hình Fastboot tiêu chuẩn trên ColorOS.", "warning")
                 log_cb("  • Khi nhận lệnh, điện thoại sẽ tự TẮT MÁY vào chế độ BROM Mode.", "info")
                 log_cb("  • Giữ phím Nguồn 10 giây để bật lại máy nếu muốn vào Android.", "info")
-                log_cb("  • Để Unlock Bootloader OPPO A5s, cần chạy công cụ MTK Client qua cổng BROM.", "warning")
+                log_cb("  • Để Unlock Bootloader thiết bị OPPO MediaTek, cần chạy công cụ MTK Client qua cổng BROM.", "warning")
             else:
                 log_cb("⚡ Đang khởi động lại điện thoại vào chế độ Bootloader / Fastboot...", "info")
                 log_cb("👉 Màn hình máy sẽ hiện chữ FASTBOOT MODE:", "warning")

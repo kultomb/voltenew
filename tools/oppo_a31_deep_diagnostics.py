@@ -39,12 +39,12 @@ def main():
             for line in lines[1:]:
                 parts = line.strip().split()
                 if len(parts) >= 2 and parts[1] == "device":
-                    devs.append({"id": parts[0], "model": "OPPO A31", "product": ""})
+                    devs.append({"id": parts[0], "model": "Thiết bị", "product": ""})
         except Exception:
             pass
 
     if not devs:
-        log("Chưa phát hiện thiết bị OPPO A31 nào kết nối ADB!", "error")
+        log("Chưa phát hiện thiết bị nào kết nối ADB!", "error")
         log("👉 Vui lòng cắm cáp USB và bật Gỡ Lỗi USB (USB Debugging) trên điện thoại.", "warning")
         return
 

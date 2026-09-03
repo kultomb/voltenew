@@ -362,7 +362,21 @@ class VoLTEFixerApp(ctk.CTk):
         )
         self.btn_all_in_one.pack(fill="x", pady=(0, 8))
 
-        # Button 2: Universal Vendor VoLTE Patcher (Direct In-App File Picker)
+        # Button 2: Vivo VoLTE Switch Opener (All Android Versions)
+        self.btn_vivo_fix = ctk.CTkButton(
+            inner,
+            text="📱 BẬT VOLTE & CÔNG TẮC VIVO",
+            font=FONT_BTN_GRID,
+            fg_color="#0284c7",
+            hover_color="#0369a1",
+            text_color="#ffffff",
+            height=40,
+            corner_radius=8,
+            command=self.action_fix_vivo_volte
+        )
+        self.btn_vivo_fix.pack(fill="x", pady=(0, 8))
+
+        # Button 3: Universal Vendor VoLTE Patcher (Direct In-App File Picker)
         self.btn_vendor_oppo = ctk.CTkButton(
             inner,
             text="TẠO TỆP VÁ VENDOR VOLTE (DUMP/PATCH)",
@@ -659,11 +673,33 @@ class VoLTEFixerApp(ctk.CTk):
                 break
 
     def _apply_device_specs(self, info: dict):
-        self.lbl_model.configure(text=info.get("model", "Unknown"))
-        self.lbl_brand.configure(text=info.get("brand", "Unknown"))
+        marketname = info.get("marketname", "")
+        model = info.get("model", "Unknown")
+        brand = info.get("brand", "Unknown")
+
+        if marketname and marketname != "Không xác định":
+            display_name = marketname
+        elif model and model != "Unknown":
+            if brand and brand != "Unknown" and not model.lower().startswith(brand.lower()):
+                display_name = f"{brand} {model}"
+            else:
+                display_name = model
+        else:
+            display_name = "Thiết bị Android"
+
+        self.lbl_model.configure(text=model)
+        self.lbl_brand.configure(text=brand)
         self.lbl_android.configure(text=f"{info.get('android_ver', '')} ({info.get('sdk', '')})")
         self.lbl_sim.configure(text=info.get("operator", "Chưa rõ"))
         self.lbl_ims.configure(text=info.get("ims_status", "---"))
+
+        if self.selected_device_id:
+            option_str = f"{display_name} ({self.selected_device_id})"
+            self.device_option.configure(values=[option_str])
+            self.device_option.set(option_str)
+            for d in self.devices:
+                if d["id"] == self.selected_device_id:
+                    d["model"] = display_name
 
     # ---------------------------------------------------------------------------
     # Logging & Status Helpers
@@ -703,6 +739,7 @@ class VoLTEFixerApp(ctk.CTk):
         state = "normal" if enabled else "disabled"
         buttons = [
             getattr(self, "btn_all_in_one", None),
+            getattr(self, "btn_vivo_fix", None),
             getattr(self, "btn_vendor_oppo", None),
             getattr(self, "btn_vendor_rom_advanced", None),
             getattr(self, "btn_deep_diagnostics", None),
@@ -746,6 +783,33 @@ class VoLTEFixerApp(ctk.CTk):
         self.set_controls_enabled(False)
         self.set_status("Đang thực hiện kích hoạt VoLTE tự động 1-Click...", 0.2)
         self.executor.submit(self._run_all_in_one_thread)
+
+    def action_fix_vivo_volte(self):
+        """Action for Vivo VoLTE activation button."""
+        print("\n[DEBUG CLICK] 📱 Bấm nút: BẬT VOLTE & CÔNG TẮC VIVO")
+        if not self._check_selected_device():
+            return
+        self.is_working = True
+        self.set_controls_enabled(False)
+        self.set_status("Đang nạp cấu hình ép hiện công tắc VoLTE Vivo...", 0.3)
+
+        def _thread():
+            try:
+                res = self.engine.fix_vivo_volte(self.selected_device_id, self.log)
+                self.after(0, lambda: self._on_action_completed(res, "Kích Hoạt VoLTE Vivo HD"))
+            except Exception as e:
+                self.log(f"⚠ Lỗi Vivo Fix: {e}", "error")
+                self.after(0, lambda: self._on_action_completed(False, "Kích Hoạt VoLTE Vivo HD"))
+
+        self.executor.submit(_thread)
+
+    def _on_action_completed(self, success: bool, action_name: str):
+        self.is_working = False
+        self.set_controls_enabled(True)
+        if success:
+            self.set_status(f"✓ Đã hoàn tất: {action_name}", 1.0)
+        else:
+            self.set_status(f"⚠ Hoàn tất với cảnh báo: {action_name}", 1.0)
 
     def _run_all_in_one_thread(self):
         dev_id = self.selected_device_id
@@ -838,12 +902,14 @@ class VoLTEFixerApp(ctk.CTk):
         self.executor.submit(_thread)
 
     def action_run_deep_diagnostics(self):
-        """Run 5-layer deep scientific diagnostics scan on OPPO A31 / MediaTek device."""
-        print("\n[DEBUG CLICK] 🔬 Bấm nút: CHẨN ĐOÁN KHOA HỌC CHUYÊN SÂU OPPO A31")
+        """Run 5-layer deep scientific diagnostics scan on connected Android device."""
+        cur_model = self.lbl_model.cget("text")
+        dev_title = f"{cur_model}" if cur_model and cur_model != "Chưa kết nối" else "thiết bị"
+        print(f"\n[DEBUG CLICK] 🔬 Bấm nút: CHẨN ĐOÁN KHOA HỌC CHUYÊN SÂU {dev_title}")
         self.is_working = True
         self.set_controls_enabled(False)
         self.set_status("Đang thực hiện chẩn đoán khoa học 5 tầng...", 0.3)
-        self.log("🔬 Bắt đầu chẩn đoán khoa học chuyên sâu OPPO A31 (5 Tầng System)...", "info")
+        self.log(f"🔬 Bắt đầu chẩn đoán khoa học chuyên sâu {dev_title} (5 Tầng System)...", "info")
 
         def _thread():
             try:
@@ -859,8 +925,8 @@ class VoLTEFixerApp(ctk.CTk):
         self.executor.submit(_thread)
 
     def action_giai_ma_overlay(self):
-        """Run root cause discovery and patch extraction for OPPO A31."""
-        print("\n[DEBUG CLICK] 🔓 Bấm nút: GIẢI MÃ GỐC RỄ KHÓA VOLTE (OPPO A31)")
+        """Run root cause discovery and patch extraction."""
+        print("\n[DEBUG CLICK] 🔓 Bấm nút: GIẢI MÃ GỐC RỄ KHÓA VOLTE")
         self.is_working = True
         self.set_controls_enabled(False)
         self.set_status("Đang thực hiện giải mã gốc rễ tệp XML cấu hình OPPO...", 0.3)
@@ -1016,7 +1082,8 @@ class VoLTEFixerApp(ctk.CTk):
                     ("*#*#4636#*#*", "Menu Trạng Thái IMS & Radio Info")
                 ]),
                 ("VOLTE_CARRIER_OVERRIDE", [
-                    ("*#*#86583#*#*", "Mở Khóa VoLTE Xiaomi Carrier Check")
+                    ("*#*#86583#*#*", "Mở Khóa VoLTE Xiaomi Carrier Check"),
+                    ("*#*#86436#*#*", "Mở Công Tắc VoLTE Vivo HD (Funtouch OS)")
                 ]),
                 ("VOWIFI_CARRIER_OVERRIDE", [
                     ("*#*#869434#*#*", "Mở Khóa VoWiFi Xiaomi Carrier Check")
