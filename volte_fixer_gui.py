@@ -362,7 +362,7 @@ class VoLTEFixerApp(ctk.CTk):
         )
         self.btn_all_in_one.pack(fill="x", pady=(0, 8))
 
-        # Button BROM 1-Click: MediaTek BROM Auto Dump -> Patch -> Flash Engine
+        # Button BROM 1-Click: MediaTek BROM Auto Dump -> Patch -> Flash Engine (Dynamic Toggle Button)
         self.btn_brom_1click = ctk.CTkButton(
             inner,
             text="⚡ BROM 1-CLICK: TỰ ĐỘNG RÚT ➔ VÁ ➔ NẠP VENDOR (MTK BROM)",
@@ -374,21 +374,7 @@ class VoLTEFixerApp(ctk.CTk):
             corner_radius=10,
             command=self.action_brom_1click_all_in_one
         )
-        self.btn_brom_1click.pack(fill="x", pady=(0, 4))
-
-        # Button Cancel BROM Process (Always Enabled for User Stop Action)
-        self.btn_stop_brom = ctk.CTkButton(
-            inner,
-            text="🛑 HỦY BROM / DỪNG TIẾN TRÌNH RÚT MÁY",
-            font=FONT_BTN_GRID,
-            fg_color="#dc2626",
-            hover_color="#991b1b",
-            text_color="#ffffff",
-            height=36,
-            corner_radius=8,
-            command=self.action_stop_brom_process
-        )
-        self.btn_stop_brom.pack(fill="x", pady=(0, 8))
+        self.btn_brom_1click.pack(fill="x", pady=(0, 8))
 
         # Button 2: Vivo VoLTE Switch Opener (All Android Versions)
         self.btn_vivo_fix = ctk.CTkButton(
@@ -781,7 +767,10 @@ class VoLTEFixerApp(ctk.CTk):
         ]
         for btn in buttons:
             if btn is not None:
-                btn.configure(state=state)
+                if btn == getattr(self, "btn_brom_1click", None) and getattr(self, "brom_running", False):
+                    btn.configure(state="normal")
+                else:
+                    btn.configure(state=state)
 
     def on_closing(self):
         self.is_running = False
@@ -798,23 +787,47 @@ class VoLTEFixerApp(ctk.CTk):
     # ---------------------------------------------------------------------------
     def action_stop_brom_process(self):
         """Cancels any running BROM process immediately and unlocks controls."""
-        print("\n[DEBUG CLICK] 🛑 Bấm nút: HỦY BROM / DỪNG TIẾN TRÌNH RÚT MÁY")
+        print("\n[DEBUG CLICK] 🛑 Bấm nút: DỪNG TIẾN TRÌNH BROM")
         try:
             from tools.mtk_brom_auto_engine import cancel_brom_process
             cancel_brom_process()
         except Exception as e:
             print("Error cancelling brom:", e)
             
+        self.brom_running = False
+        if hasattr(self, "btn_brom_1click"):
+            self.btn_brom_1click.configure(
+                text="⚡ BROM 1-CLICK: TỰ ĐỘNG RÚT ➔ VÁ ➔ NẠP VENDOR (MTK BROM)",
+                fg_color="#d97706",
+                hover_color="#b45309",
+                state="normal"
+            )
         self.is_working = False
         self.set_controls_enabled(True)
-        self.set_status("Đã hủy tiến trình BROM. Sẵn sàng thao tác!", 0.0)
+        self.set_status("Đã dừng tiến trình BROM. Sẵn sàng thao tác!", 0.0)
         self.log("🛑 Đã dừng tiến trình BROM và mở lại giao diện!", "warning")
 
     def action_brom_1click_all_in_one(self):
-        """Action for single 1-Click BROM Auto Engine: Dump -> Patch -> Flash."""
+        """Action for single 1-Click BROM Auto Engine with Dynamic Toggle Button."""
+        if getattr(self, "brom_running", False):
+            # User clicked while running -> STOP BROM!
+            self.action_stop_brom_process()
+            return
+
         print("\n[DEBUG CLICK] ⚡ Bấm nút: BROM 1-CLICK ALL-IN-ONE (RÚT -> VÁ -> NẠP VENDOR)")
         
+        self.brom_running = True
         self.is_working = True
+        
+        # Transform button into RED STOP BUTTON
+        if hasattr(self, "btn_brom_1click"):
+            self.btn_brom_1click.configure(
+                text="🛑 DỪNG TIẾN TRÌNH BROM (STOP)",
+                fg_color="#dc2626",
+                hover_color="#991b1b",
+                state="normal"
+            )
+            
         self.set_controls_enabled(False)
         self.set_status("Đang đứng chờ kết nối MediaTek BROM Mode...", 0.2)
         
@@ -828,12 +841,23 @@ class VoLTEFixerApp(ctk.CTk):
                 
                 work_dir = os.path.abspath("scratch/brom_work")
                 success = run_brom_1click_all_in_one(work_dir, patch_vendor_image, log_cb=self.log)
-                self.after(0, lambda: self._on_action_completed(success, "BROM 1-Click VoLTE Auto Engine"))
+                self.after(0, lambda: self._on_brom_completed(success))
             except Exception as e:
                 self.log(f"⚠ Lỗi BROM 1-Click: {e}", "error")
-                self.after(0, lambda: self._on_action_completed(False, "BROM 1-Click VoLTE Auto Engine"))
+                self.after(0, lambda: self._on_brom_completed(False))
 
         self.executor.submit(_thread)
+
+    def _on_brom_completed(self, success: bool):
+        self.brom_running = False
+        if hasattr(self, "btn_brom_1click"):
+            self.btn_brom_1click.configure(
+                text="⚡ BROM 1-CLICK: TỰ ĐỘNG RÚT ➔ VÁ ➔ NẠP VENDOR (MTK BROM)",
+                fg_color="#d97706",
+                hover_color="#b45309",
+                state="normal"
+            )
+        self._on_action_completed(success, "BROM 1-Click VoLTE Auto Engine")
 
     def _check_selected_device(self) -> bool:
         if not self.selected_device_id:
