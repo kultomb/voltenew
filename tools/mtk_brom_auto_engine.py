@@ -9,7 +9,7 @@ import re
 import time
 import subprocess
 
-MTK_CLIENT_DIR = r"C:\Users\CMD\Desktop\Tool android\mtkclient"
+MTK_CLIENT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "mtkclient"))
 MTK_CLIENT_PY = os.path.join(MTK_CLIENT_DIR, "mtk.py")
 
 _current_brom_process: subprocess.Popen | None = None
