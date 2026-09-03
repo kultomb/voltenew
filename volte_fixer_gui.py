@@ -859,7 +859,7 @@ class VoLTEFixerApp(ctk.CTk):
                 if out_file:
                     self.log("🎉 TẠO TỆP VÁ VENDOR THÀNH CÔNG! Tệp bản vá đã lưu tại:", "success")
                     self.log(f"👉 {out_file}", "success")
-                    self.log("👉 HƯỚNG DẪN NẠP UNLOCKTOOL: Mở UnlockTool -> Trỏ tệp vendor_patched.bin vào phân vùng vendor -> Tích [PATCH DM VERITY] -> Bấm [FLASH] ⚡", "info")
+                    self.log("👉 HƯỚNG DẪN NẠP UNLOCKTOOL: Mở UnlockTool -> Trỏ tệp vendor_patched.bin vào phân vùng vendor -> Bấm [FLASH] ⚡", "info")
                     self.after(0, lambda: messagebox.showinfo("Thành công", f"Đã tạo tệp vá Vendor VoLTE thành công!\n\nTệp đầu ra:\n{out_file}"))
             except Exception as ex:
                 self.log(f"❌ Lỗi tạo tệp vá Vendor: {ex}", "error")

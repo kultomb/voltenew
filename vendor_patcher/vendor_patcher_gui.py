@@ -183,7 +183,7 @@ class CustomerFriendlyVendorPatcherUI(tk.Tk):
                 self.log_msg("\n👉 HƯỚNG DẪN NẠP LÊN ĐIỆN THOẠI BẰNG UNLOCKTOOL:")
                 self.log_msg("   1. Mở UnlockTool -> Tab MediaTek hoặc Qualcomm.")
                 self.log_msg(f"   2. Chọn tệp [{os.path.basename(out_file)}] vào phân vùng vendor.")
-                self.log_msg("   3. Tích chọn [PATCH DM VERITY] -> Bấm nút [FLASH] (Tia sét ⚡).")
+                self.log_msg("   3. Bấm nút [FLASH] (Tia sét ⚡).")
                 messagebox.showinfo("Thành công", f"Đã tạo tệp vá Vendor VoLTE thành công!\n\nTệp đầu ra:\n{out_file}")
         except Exception as ex:
             self.log_msg(f"❌ Lỗi thực thi: {ex}")
