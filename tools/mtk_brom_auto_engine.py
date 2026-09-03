@@ -50,7 +50,9 @@ def run_mtk_command(cmd_args: list, log_cb=print, timeout: int = 120) -> tuple[b
         
         output_lines = []
         start_time = time.time()
-        
+        last_milestone = -1
+        import re
+
         while True:
             line = process.stdout.readline()
             if not line and process.poll() is not None:
@@ -60,8 +62,23 @@ def run_mtk_command(cmd_args: list, log_cb=print, timeout: int = 120) -> tuple[b
                 if cleaned:
                     lower_line = cleaned.lower()
                     # Skip verbose spam hint lines
-                    if not any(kw in lower_line for kw in ignore_keywords):
-                        log_cb(f"  ⚡ {cleaned}", "info")
+                    if any(kw in lower_line for kw in ignore_keywords):
+                        output_lines.append(cleaned)
+                        continue
+
+                    # Filter repetitive fine-grained progress lines
+                    if "progress:" in lower_line:
+                        match = re.search(r'(\d+(?:\.\d+)?)\s*%', cleaned)
+                        if match:
+                            pct = float(match.group(1))
+                            milestone = int(pct // 10) * 10
+                            if milestone != last_milestone and milestone % 10 == 0:
+                                last_milestone = milestone
+                                log_cb(f"  ⚡ Tiến trình BROM: {milestone}%...", "info")
+                        output_lines.append(cleaned)
+                        continue
+
+                    log_cb(f"  ⚡ {cleaned}", "info")
                     output_lines.append(cleaned)
             if time.time() - start_time > timeout:
                 process.kill()
