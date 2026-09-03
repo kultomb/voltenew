@@ -34,7 +34,9 @@ def run_mtk_command(cmd_args: list, log_cb=print, timeout: int = 120) -> tuple[b
     # Filter list for spam lines to ignore
     ignore_keywords = [
         "hint:", "power off", "for brom mode", "for preloader mode",
-        "if it is already connected", "please reconnect mobile", "metamodes"
+        "if it is already connected", "please reconnect mobile", "metamodes",
+        "deviceclass", "couldn't get device configuration", "handshake failed",
+        "status: handshake", "retrying...", "preloader - [lib]"
     ]
 
     try:
@@ -60,26 +62,31 @@ def run_mtk_command(cmd_args: list, log_cb=print, timeout: int = 120) -> tuple[b
             if line:
                 cleaned = line.strip()
                 if cleaned:
-                    lower_line = cleaned.lower()
-                    # Skip verbose spam hint lines
+                    # Strip ANSI escape codes
+                    clean_text = re.sub(r'\x1b\[[0-9;]*[mK]', '', cleaned).strip()
+                    if not clean_text or clean_text.startswith("...") or clean_text.startswith("...."):
+                        continue
+                        
+                    lower_line = clean_text.lower()
+                    # Skip verbose spam hint and error retry lines
                     if any(kw in lower_line for kw in ignore_keywords):
-                        output_lines.append(cleaned)
+                        output_lines.append(clean_text)
                         continue
 
                     # Filter repetitive fine-grained progress lines
                     if "progress:" in lower_line:
-                        match = re.search(r'(\d+(?:\.\d+)?)\s*%', cleaned)
+                        match = re.search(r'(\d+(?:\.\d+)?)\s*%', clean_text)
                         if match:
                             pct = float(match.group(1))
                             milestone = int(pct // 10) * 10
                             if milestone != last_milestone and milestone % 10 == 0:
                                 last_milestone = milestone
                                 log_cb(f"  ⚡ Tiến trình BROM: {milestone}%...", "info")
-                        output_lines.append(cleaned)
+                        output_lines.append(clean_text)
                         continue
 
-                    log_cb(f"  ⚡ {cleaned}", "info")
-                    output_lines.append(cleaned)
+                    log_cb(f"  ⚡ {clean_text}", "info")
+                    output_lines.append(clean_text)
             if time.time() - start_time > timeout:
                 process.kill()
                 log_cb("⏱️ Hết thời gian chờ kết nối BROM (Timeout).", "warning")
