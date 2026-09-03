@@ -128,7 +128,7 @@ def find_mtk_com_port(timeout: int = 45, log_cb=print) -> str:
 def run_brom_1click_all_in_one(working_dir: str, patch_engine_func, log_cb=print) -> bool:
     """
     1-Click Automated BROM Engine:
-    Step 1: Wait for MediaTek COM Port -> Dump vendor & vbmeta from BROM
+    Step 1: Monitor MediaTek COM Port -> Dump vendor & vbmeta from BROM
     Step 2: Auto Patch vendor & disable vbmeta DM-Verity
     Step 3: Flash patched vendor & vbmeta back to phone
     Step 4: Send reset command to reboot into Android
@@ -141,17 +141,29 @@ def run_brom_1click_all_in_one(working_dir: str, patch_engine_func, log_cb=print
     # -------------------------------------------------------------------------
     # STEP 1: MONITOR COM PORT & DUMP VENDOR
     # -------------------------------------------------------------------------
-    com_port = find_mtk_com_port(timeout=45, log_cb=log_cb)
+    com_port = find_mtk_com_port(timeout=40, log_cb=log_cb)
     if not com_port:
         log_cb("❌ Chưa nhận diện được Cổng COM MediaTek. Vui lòng giữ phím TĂNG + GIẢM ÂM LƯỢNG và cắm cáp lại!", "error")
         return False
 
-    log_cb("📦 [BƯỚC 1/4]: Đang rút (Dump) phân vùng Vendor qua Cổng COM...", "info")
+    log_cb(f"📦 [BƯỚC 1/4]: Đang kết nối trực tiếp Cổng [{com_port}] để rút phôi Vendor...", "info")
     
-    vendor_args = ["r", "vendor", dump_vendor_path, "--serialport", com_port]
+    # Pass --noreconnect to avoid re-triggering handshake on an active COM session
+    vendor_args = ["r", "vendor", dump_vendor_path, "--serialport", com_port, "--noreconnect"]
     success_vendor, out_vendor = run_mtk_command(vendor_args, log_cb=log_cb, timeout=90)
+    
+    # Fallback retry without --noreconnect if needed
     if not success_vendor or not os.path.exists(dump_vendor_path):
-        log_cb("❌ Không thể rút phân vùng Vendor. Hãy thử lại!", "error")
+        log_cb("  ℹ️ Đang thử lại kết nối handshake tự động...", "info")
+        vendor_args_retry = ["r", "vendor", dump_vendor_path, "--serialport", com_port]
+        success_vendor, out_vendor = run_mtk_command(vendor_args_retry, log_cb=log_cb, timeout=60)
+
+    if not success_vendor or not os.path.exists(dump_vendor_path):
+        log_cb("⚠️ [GHI CHÚ CHI PHÍ BROM KHÓA AN NINH CAO - DA SECURE BOOT]:", "warning")
+        log_cb("👉 Máy OPPO/Realme chip MediaTek đời mới (SLA/DAA Secure Boot) đã khóa lệnh Nút BROM trực tiếp.", "warning")
+        log_cb("👉 VUI LÒNG DÙNG UNLOCKTOOL NẠP 1 SÂU THÀNH CÔNG NGHỆ BẰNG HƯỚNG DẪN DƯỚI:", "warning")
+        log_cb("   1. Nhấp nút [TẠO TỆP VÁ VENDOR VOLTE] trên Tool để xuất tệp PATCHED_vendor.img.", "info")
+        log_cb("   2. Mở UnlockTool -> Tab MTK -> Boot Device -> Chuột phải Vendor chọn Write -> Trỏ tệp vá!", "info")
         return False
         
     log_cb(f"✓ Đã rút thành công Vendor gốc ({os.path.getsize(dump_vendor_path) / (1024*1024):.2f} MB)", "success")
