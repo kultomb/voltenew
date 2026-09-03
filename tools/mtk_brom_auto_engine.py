@@ -82,10 +82,11 @@ def run_mtk_command(cmd_args: list[str], log_cb=print, timeout: float = 60.0) ->
                 if clean_line and not re.match(r'^\.+$', clean_line):
                     lower_line = clean_line.lower()
                     
-                    # Detect BROM Connection / Handshake success signal
-                    if not handshake_logged and any(k in lower_line for k in ["detected", "sync", "connected", "handshake", "chip", "target"]):
+                    # Detect REAL BROM Connection / Handshake success signal
+                    if not handshake_logged and any(k in lower_line for k in ["device detected", "hw code:", "reading partition", "writing partition"]):
                         handshake_logged = True
                         log_cb("✓ Đã nhận diện cổng COM MediaTek & Handshake BROM thành công!", "success")
+                        log_cb("📦 [BƯỚC 1/4]: Đang rút phân vùng Vendor...", "info")
                         
                     if not any(kw in lower_line for kw in ignore_keywords):
                         log_cb(f"  ⚡ {clean_line}", "info")
@@ -128,7 +129,6 @@ def run_brom_1click_all_in_one(working_dir: str, patch_engine_func, log_cb=print
     # STEP 1: START PRELOADER VCOM LISTENER & DUMP VENDOR
     # -------------------------------------------------------------------------
     log_cb("⌛ Đang đứng chờ cắm cáp BROM... (Vui lòng tắt nguồn máy, giữ phím TĂNG + GIẢM ÂM LƯỢNG và CẮM CÁP USB)", "info")
-    log_cb("📦 [BƯỚC 1/4]: Khởi chạy bộ lắng nghe PreLoader VCOM & Rút phân vùng Vendor...", "info")
     
     success_vendor, out_vendor = run_mtk_command(["r", "vendor", dump_vendor_path], log_cb=log_cb, timeout=60.0)
     
