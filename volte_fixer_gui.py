@@ -374,7 +374,21 @@ class VoLTEFixerApp(ctk.CTk):
             corner_radius=10,
             command=self.action_brom_1click_all_in_one
         )
-        self.btn_brom_1click.pack(fill="x", pady=(0, 8))
+        self.btn_brom_1click.pack(fill="x", pady=(0, 4))
+
+        # Button Cancel BROM Process (Always Enabled for User Stop Action)
+        self.btn_stop_brom = ctk.CTkButton(
+            inner,
+            text="🛑 HỦY BROM / DỪNG TIẾN TRÌNH RÚT MÁY",
+            font=FONT_BTN_GRID,
+            fg_color="#dc2626",
+            hover_color="#991b1b",
+            text_color="#ffffff",
+            height=36,
+            corner_radius=8,
+            command=self.action_stop_brom_process
+        )
+        self.btn_stop_brom.pack(fill="x", pady=(0, 8))
 
         # Button 2: Vivo VoLTE Switch Opener (All Android Versions)
         self.btn_vivo_fix = ctk.CTkButton(
@@ -571,95 +585,48 @@ class VoLTEFixerApp(ctk.CTk):
             else:
                 messagebox.showwarning("Cảnh báo", "Vui lòng kết nối thiết bị Android trước!")
 
-    def scan_all_connected_devices(self) -> tuple[list[dict], list[str]]:
-        """
-        Scans both ADB Devices and Windows COM Ports (MediaTek / Qualcomm / VCOM).
-        Returns a list of device dicts and formatted dropdown options.
-        """
-        all_devices = []
-        dropdown_options = []
-
-        # 1. Scan ADB devices
-        try:
-            adb_devs = self.engine.get_devices()
-            for d in adb_devs:
-                did = d["id"]
-                dmodel = d.get("model", did)
-                opt_str = f"📱 [ADB] {dmodel} ({did})"
-                all_devices.append({"type": "adb", "id": did, "model": dmodel, "display": opt_str})
-                dropdown_options.append(opt_str)
-        except Exception:
-            pass
-
-        # 2. Scan COM Ports (MediaTek / Qualcomm / VCOM / Serial)
-        try:
-            import serial.tools.list_ports
-            for p in serial.tools.list_ports.comports():
-                dev_name = p.device  # e.g. "COM27"
-                desc = p.description or "Serial Port"
-                hwid = str(p.hwid).upper()
-                
-                # Exclude default motherboard COM1 unless specifically requested
-                if dev_name.upper() == "COM1" and "PNP0501" in hwid:
-                    continue
-                    
-                opt_str = f"⚡ [COM] {dev_name} — {desc}"
-                all_devices.append({"type": "com", "id": dev_name, "model": desc, "display": opt_str})
-                dropdown_options.append(opt_str)
-        except Exception:
-            pass
-
-        if not dropdown_options:
-            dropdown_options = ["Chưa kết nối thiết bị ADB / Cổng COM nào"]
-
-        return all_devices, dropdown_options
-
+    # ---------------------------------------------------------------------------
+    # ADB Device Monitor Thread (Parity with HBGAdBlocker DeviceManager)
+    # ---------------------------------------------------------------------------
     def start_device_auto_check(self):
         Thread(target=self._adb_monitor_thread, daemon=True).start()
 
     def _adb_monitor_thread(self):
-        last_signature = None
+        last_device_id = None
 
         while self.is_running:
             try:
-                devs, options = self.scan_all_connected_devices()
-                sig = " | ".join(options)
-                
-                if sig != last_signature:
-                    last_signature = sig
-                    if devs:
-                        first = devs[0]
-                        if first["type"] == "adb":
-                            cur_id = first["id"]
-                            cur_model = first["model"]
+                if not self.is_working:
+                    connected, reason = self.engine.refresh()
+                    if connected and self.engine.dm and self.engine.dm.serial:
+                        cur_id = self.engine.dm.serial
+                        cur_model = self.engine.dm.device_model or cur_id
+                        if last_device_id != cur_id:
+                            last_device_id = cur_id
                             self.selected_device_id = cur_id
-                            self.devices = devs
+                            options = [f"{cur_model} ({cur_id})"]
+                            self.devices = [{"id": cur_id, "model": cur_model}]
                             self.after(0, lambda m=cur_model, opts=options, cid=cur_id: self._on_device_connected(m, opts, cid))
-                        elif first["type"] == "com":
-                            com_port = first["id"]
-                            com_desc = first["model"]
-                            self.selected_device_id = None
-                            self.devices = devs
-                            self.after(0, lambda p=com_port, d=com_desc, opts=options: self._on_com_port_connected(p, d, opts))
                     else:
-                        self.devices = []
-                        self.selected_device_id = None
-                        self.after(0, self._on_adb_disconnected)
+                        devs = self.engine.get_devices()
+                        if devs:
+                            cur_id = devs[0]["id"]
+                            cur_model = devs[0]["model"]
+                            if last_device_id != cur_id:
+                                last_device_id = cur_id
+                                self.selected_device_id = cur_id
+                                options = [f"{cur_model} ({cur_id})"]
+                                self.devices = devs
+                                self.after(0, lambda m=cur_model, opts=options, cid=cur_id: self._on_device_connected(m, opts, cid))
+                        elif last_device_id is not None:
+                            last_device_id = None
+                            self.devices = []
+                            self.selected_device_id = None
+                            self.after(0, self._on_adb_disconnected)
 
-                time.sleep(1.0 if last_signature and "Chưa kết nối" not in last_signature else 2.0)
+                time.sleep(1.2 if last_device_id else 2.5)
             except Exception:
-                time.sleep(2.0)
-
-    def _on_com_port_connected(self, com_port: str, com_desc: str, options: list[str]):
-        self.status_badge.configure(text=f"● Cổng COM {com_port} (BROM Mode)", text_color="#f59e0b")
-        self.device_option.configure(values=options)
-        self.device_option.set(options[0])
-        self.lbl_model.configure(text=f"{com_desc}")
-        self.lbl_brand.configure(text="---")
-        self.lbl_android.configure(text="---")
-        self.lbl_sim.configure(text="---")
-        self.lbl_ims.configure(text="---")
-        self.set_status(f"✓ Đã kết nối Cổng COM {com_port}: {com_desc}", 1.0)
+                time.sleep(2.5)
 
     def _on_device_connected(self, model_name: str, options: list[str], dev_id: str):
         self.status_badge.configure(text="● Đã kết nối ADB", text_color=THEME["success"])
@@ -818,21 +785,41 @@ class VoLTEFixerApp(ctk.CTk):
 
     def on_closing(self):
         self.is_running = False
+        try:
+            from tools.mtk_brom_auto_engine import cancel_brom_process
+            cancel_brom_process()
+        except Exception:
+            pass
         self.stop_scrcpy_stream()
         self.destroy()
 
     # ---------------------------------------------------------------------------
     # Action Handlers
     # ---------------------------------------------------------------------------
+    def action_stop_brom_process(self):
+        """Cancels any running BROM process immediately and unlocks controls."""
+        print("\n[DEBUG CLICK] 🛑 Bấm nút: HỦY BROM / DỪNG TIẾN TRÌNH RÚT MÁY")
+        try:
+            from tools.mtk_brom_auto_engine import cancel_brom_process
+            cancel_brom_process()
+        except Exception as e:
+            print("Error cancelling brom:", e)
+            
+        self.is_working = False
+        self.set_controls_enabled(True)
+        self.set_status("Đã hủy tiến trình BROM. Sẵn sàng thao tác!", 0.0)
+        self.log("🛑 Đã dừng tiến trình BROM và mở lại giao diện!", "warning")
+
     def action_brom_1click_all_in_one(self):
         """Action for single 1-Click BROM Auto Engine: Dump -> Patch -> Flash."""
         print("\n[DEBUG CLICK] ⚡ Bấm nút: BROM 1-CLICK ALL-IN-ONE (RÚT -> VÁ -> NẠP VENDOR)")
         
         self.is_working = True
         self.set_controls_enabled(False)
-        self.set_status("Đang chờ kết nối MediaTek BROM Mode...", 0.2)
+        self.set_status("Đang đứng chờ kết nối MediaTek BROM Mode...", 0.2)
         
         self.log("⚡ BROM 1-CLICK: Tắt nguồn máy ➔ Giữ phím TĂNG + GIẢM ÂM LƯỢNG ➔ Cắm cáp USB", "warning")
+        self.log("⌛ Đang đứng chờ cắm cáp kết nối MediaTek BROM Mode...", "info")
 
         def _thread():
             try:
@@ -845,9 +832,6 @@ class VoLTEFixerApp(ctk.CTk):
             except Exception as e:
                 self.log(f"⚠ Lỗi BROM 1-Click: {e}", "error")
                 self.after(0, lambda: self._on_action_completed(False, "BROM 1-Click VoLTE Auto Engine"))
-            finally:
-                self.is_working = False
-                self.set_controls_enabled(True)
 
         self.executor.submit(_thread)
 
@@ -1602,26 +1586,7 @@ class VoLTEFixerApp(ctk.CTk):
         self.executor.submit(self._fetch_device_details_async, self.selected_device_id)
 
 
-def ensure_single_instance():
-    try:
-        import ctypes
-        mutex_name = "Global\\HBG_VoLTE_Fixer_Tool_SingleInstance_Mutex"
-        kernel32 = ctypes.windll.kernel32
-        mutex = kernel32.CreateMutexW(None, False, mutex_name)
-        last_error = kernel32.GetLastError()
-        if last_error == 183:  # ERROR_ALREADY_EXISTS
-            import tkinter as tk
-            from tkinter import messagebox
-            root = tk.Tk()
-            root.withdraw()
-            messagebox.showwarning("Cảnh báo", "Ứng dụng HBG VoLTE Fixer Tool đang được mở trên máy tính!\nVui lòng đóng ứng dụng cũ trước khi mở mới.")
-            sys.exit(0)
-        return mutex
-    except Exception:
-        return None
-
 def main():
-    _mutex = ensure_single_instance()
     app = VoLTEFixerApp()
     app.mainloop()
 
