@@ -1,40 +1,89 @@
 /*
  * Native Win32 C++ MediaTek BROM/PreLoader VCOM Listener & High-Speed Handshake Engine
- * Built with MSVC cl.exe - Low Latency (<1ms), Zero DTR/RTS Reset Pulse, 100% Native Win32 API
+ * Uses Windows SetupAPI to detect exact MediaTek VID_0E8D COM Port with Zero DTR/RTS Reset Pulse.
  */
 
 #include <windows.h>
+#include <setupapi.h>
+#include <devguid.h>
 #include <iostream>
 #include <string>
 #include <vector>
 #include <chrono>
 #include <thread>
+#include <algorithm>
 
-// MTK BROM Protocol Handshake Constants
-const uint8_t HANDSHAKE_START = 0xA0;
-const uint8_t HANDSHAKE_RSP_1 = 0x5F;
-const uint8_t HANDSHAKE_RSP_2 = 0xE5;
+#pragma comment(lib, "setupapi.lib")
 
-// Scans Windows Registry / SetupAPI COM Ports
-std::vector<std::string> GetAvailableComPorts() {
-    std::vector<std::string> ports;
-    char targetPath[5000];
+// Structure for MTK COM Port
+struct MtkPortInfo {
+    std::string portName;
+    std::string description;
+    std::string hardwareId;
+};
 
-    for (int i = 1; i <= 256; ++i) {
-        std::string portName = "COM" + std::to_string(i);
-        DWORD result = QueryDosDeviceA(portName.c_str(), targetPath, sizeof(targetPath));
-        if (result != 0) {
-            ports.push_back(portName);
+// Scans Windows Device Manager via SetupAPI for VID_0E8D or MediaTek / PreLoader VCOM Ports
+std::vector<MtkPortInfo> ScanMtkComPorts() {
+    std::vector<MtkPortInfo> mtkPorts;
+    HDEVINFO hDevInfo = SetupDiGetClassDevsA(&GUID_DEVINTERFACE_COMPORT, NULL, NULL, DIGCF_PRESENT | DIGCF_DEVICEINTERFACE);
+
+    if (hDevInfo == INVALID_HANDLE_VALUE) {
+        return mtkPorts;
+    }
+
+    SP_DEVINFO_DATA devInfoData;
+    devInfoData.cbSize = sizeof(SP_DEVINFO_DATA);
+
+    for (DWORD i = 0; SetupDiEnumDeviceInfo(hDevInfo, i, &devInfoData); i++) {
+        char buffer[1024] = { 0 };
+        std::string friendlyName = "";
+        std::string hardwareId = "";
+        std::string portName = "";
+
+        // Get Friendly Name
+        if (SetupDiGetDeviceRegistryPropertyA(hDevInfo, &devInfoData, SPDRP_FRIENDLYNAME, NULL, (PBYTE)buffer, sizeof(buffer), NULL)) {
+            friendlyName = buffer;
+        }
+
+        // Get Hardware ID
+        if (SetupDiGetDeviceRegistryPropertyA(hDevInfo, &devInfoData, SPDRP_HARDWAREID, NULL, (PBYTE)buffer, sizeof(buffer), NULL)) {
+            hardwareId = buffer;
+        }
+
+        // Check for MediaTek VID 0E8D or PreLoader / MediaTek keywords
+        std::string uppercaseFriendly = friendlyName;
+        std::string uppercaseHwId = hardwareId;
+        std::transform(uppercaseFriendly.begin(), uppercaseFriendly.end(), uppercaseFriendly.begin(), ::toupper);
+        std::transform(uppercaseHwId.begin(), uppercaseHwId.end(), uppercaseHwId.begin(), ::toupper);
+
+        bool isMtk = (
+            uppercaseHwId.find("0E8D") != std::string::npos ||
+            uppercaseFriendly.find("MEDIATEK") != std::string::npos ||
+            uppercaseFriendly.find("PRELOADER") != std::string::npos ||
+            uppercaseFriendly.find("VCOM") != std::string::npos
+        );
+
+        if (isMtk) {
+            // Extract COM port name (e.g. COM27 from "MediaTek USB Port (COM27)")
+            size_t startPos = friendlyName.find("(COM");
+            if (startPos != std::string::npos) {
+                size_t endPos = friendlyName.find(")", startPos);
+                if (endPos != std::string::npos) {
+                    portName = friendlyName.substr(startPos + 1, endPos - startPos - 1);
+                    mtkPorts.push_back({ portName, friendlyName, hardwareId });
+                }
+            }
         }
     }
-    return ports;
+
+    SetupDiDestroyDeviceInfoList(hDevInfo);
+    return mtkPorts;
 }
 
 // Low-latency Win32 Serial Port Listener without DTR/RTS pulse
 HANDLE OpenMtkComPort(const std::string& portName) {
     std::string fullPortName = "\\\\.\\" + portName;
 
-    // Open COM Port with Win32 CreateFileA
     HANDLE hSerial = CreateFileA(
         fullPortName.c_str(),
         GENERIC_READ | GENERIC_WRITE,
@@ -49,7 +98,6 @@ HANDLE OpenMtkComPort(const std::string& portName) {
         return INVALID_HANDLE_VALUE;
     }
 
-    // Configure DCB (Data Control Block) - CRITICAL: DTR_CONTROL_DISABLE & RTS_CONTROL_DISABLE
     DCB dcbSerialParams = { 0 };
     dcbSerialParams.DCBlength = sizeof(dcbSerialParams);
 
@@ -75,7 +123,6 @@ HANDLE OpenMtkComPort(const std::string& portName) {
         return INVALID_HANDLE_VALUE;
     }
 
-    // Fast Timeouts (sub-millisecond responsiveness)
     COMMTIMEOUTS timeouts = { 0 };
     timeouts.ReadIntervalTimeout = 10;
     timeouts.ReadTotalTimeoutConstant = 50;
@@ -96,13 +143,13 @@ int main(int argc, char* argv[]) {
     std::cout << "====================================================================" << std::endl;
     std::cout << "⚡ NATIVE WIN32 C++ MEDIATEK BROM ENGINE (SUB-MILLISECOND VCOM LOCK)" << std::endl;
     std::cout << "====================================================================" << std::endl;
-    std::cout << "⌛ Đang đứng chờ cổng COM MediaTek (Cụm phím Tăng+Giảm âm lượng, cắm cáp USB)..." << std::endl;
+    std::cout << "⌛ Đang đứng chờ cắm cáp BROM MediaTek (Tắt nguồn, giữ Tăng+Giảm Âm Lượng và Cắm cáp)..." << std::endl;
 
     auto start_time = std::chrono::steady_clock::now();
     std::string detectedPort = "";
-    HANDLE hConnectedPort = INVALID_HANDLE_VALUE;
+    std::string detectedDesc = "";
 
-    // Scan loop (5ms precision)
+    // High-frequency scan loop (10ms precision)
     while (true) {
         auto current_time = std::chrono::steady_clock::now();
         double elapsed = std::chrono::duration_cast<std::chrono::seconds>(current_time - start_time).count();
@@ -111,29 +158,20 @@ int main(int argc, char* argv[]) {
             return 1;
         }
 
-        std::vector<std::string> ports = GetAvailableComPorts();
-        for (const auto& port : ports) {
-            if (port == "COM1" || port == "COM2") continue;
-
-            HANDLE hPort = OpenMtkComPort(port);
-            if (hPort != INVALID_HANDLE_VALUE) {
-                // Port opened successfully with zero DTR/RTS pulse!
-                detectedPort = port;
-                hConnectedPort = hPort;
-                break;
-            }
-        }
-
-        if (hConnectedPort != INVALID_HANDLE_VALUE) {
+        std::vector<MtkPortInfo> mtkPorts = ScanMtkComPorts();
+        if (!mtkPorts.empty()) {
+            detectedPort = mtkPorts[0].portName;
+            detectedDesc = mtkPorts[0].description;
             break;
         }
 
-        std::this_thread::sleep_for(std::chrono::milliseconds(5));
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
 
-    std::cout << "✓ ĐÃ PHÁT HIỆN CỔNG COM MEDIATEK [" << detectedPort << "] BẰNG C++ NATIVE THÀNH CÔNG!" << std::endl;
+    std::cout << "✓ ĐÃ PHÁT HIỆN CỔNG COM MEDIATEK [" << detectedPort << " — " << detectedDesc << "] THÀNH CÔNG!" << std::endl;
     std::cout << "⚡ BROM Mode đã được khóa chặt, không có xung DTR/RTS gây reset máy!" << std::endl;
 
-    CloseHandle(hConnectedPort);
+    // Output port name for main engine wrapper
+    std::cout << "PORT:" << detectedPort << std::endl;
     return 0;
 }

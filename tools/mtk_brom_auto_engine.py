@@ -30,12 +30,12 @@ def cancel_brom_process():
         _current_brom_process = None
 
 
-def run_cpp_brom_fast_scan(log_cb=print, timeout: float = 40.0) -> bool:
+def run_cpp_brom_fast_scan(log_cb=print, timeout: float = 40.0) -> str | None:
     """Runs Native Win32 C++ BROM Engine for sub-millisecond port locking without DTR/RTS resets."""
     global _current_brom_process, _cancel_requested
 
     if not os.path.exists(CPP_ENGINE_EXE):
-        return True  # Fallback to python listener if C++ binary is missing
+        return None
 
     try:
         process = subprocess.Popen(
@@ -49,12 +49,13 @@ def run_cpp_brom_fast_scan(log_cb=print, timeout: float = 40.0) -> bool:
         )
         _current_brom_process = process
 
+        detected_port = None
         start_time = time.time()
         while True:
             if _cancel_requested:
                 process.kill()
                 _current_brom_process = None
-                return False
+                return None
 
             line = process.stdout.readline()
             if not line and process.poll() is not None:
@@ -62,7 +63,9 @@ def run_cpp_brom_fast_scan(log_cb=print, timeout: float = 40.0) -> bool:
             if line:
                 clean_line = line.strip()
                 if clean_line:
-                    if "ĐÃ PHÁT HIỆN CỔNG COM MEDIATEK" in clean_line:
+                    if clean_line.startswith("PORT:"):
+                        detected_port = clean_line.split("PORT:", 1)[1].strip()
+                    elif "ĐÃ PHÁT HIỆN CỔNG COM MEDIATEK" in clean_line:
                         log_cb(f"  ✓ {clean_line}", "success")
                     elif "⚡" in clean_line or "⌛" in clean_line:
                         log_cb(f"  {clean_line}", "info")
@@ -70,19 +73,19 @@ def run_cpp_brom_fast_scan(log_cb=print, timeout: float = 40.0) -> bool:
             if time.time() - start_time > timeout:
                 process.kill()
                 _current_brom_process = None
-                return False
+                return None
 
-        rc = process.poll()
+        process.poll()
         _current_brom_process = None
-        return (rc == 0)
+        return detected_port
     except Exception as e:
         _current_brom_process = None
         log_cb(f"⚠ C++ Listener notice: {e}", "warning")
-        return True
+        return None
 
 
-def run_mtk_command(cmd_args: list[str], log_cb=print, timeout: float = 60.0) -> tuple[bool, str]:
-    """Runs mtk.py command with --serialport DETECT for direct PreLoader VCOM serial listening."""
+def run_mtk_command(cmd_args: list[str], port_name: str | None = None, log_cb=print, timeout: float = 60.0) -> tuple[bool, str]:
+    """Runs mtk.py command with specific COM port or DETECT for PreLoader VCOM serial listening."""
     global _current_brom_process, _cancel_requested
     
     if not os.path.exists(MTK_CLIENT_PY):
@@ -91,7 +94,12 @@ def run_mtk_command(cmd_args: list[str], log_cb=print, timeout: float = 60.0) ->
         return False, err_msg
 
     python_exe = sys.executable
-    full_cmd = [python_exe, MTK_CLIENT_PY, "--serialport", "DETECT"] + cmd_args
+    full_cmd = [python_exe, MTK_CLIENT_PY]
+    if port_name:
+        full_cmd.extend(["--serialport", port_name])
+    else:
+        full_cmd.extend(["--serialport", "DETECT"])
+    full_cmd.extend(cmd_args)
 
     ignore_keywords = [
         "hint:", "power off", "for brom mode", "for preloader mode",
@@ -179,12 +187,12 @@ def run_brom_1click_all_in_one(working_dir: str, patch_engine_func, log_cb=print
     log_cb("⌛ Đang đứng chờ cắm cáp BROM... (Vui lòng tắt nguồn máy, giữ phím TĂNG + GIẢM ÂM LƯỢNG và CẮM CÁP USB)", "info")
     
     # Run C++ fast listener first
-    run_cpp_brom_fast_scan(log_cb=log_cb, timeout=30.0)
+    port_found = run_cpp_brom_fast_scan(log_cb=log_cb, timeout=30.0)
 
     if _cancel_requested:
         return False
 
-    success_vendor, out_vendor = run_mtk_command(["r", "vendor", dump_vendor_path], log_cb=log_cb, timeout=60.0)
+    success_vendor, out_vendor = run_mtk_command(["r", "vendor", dump_vendor_path], port_name=port_found, log_cb=log_cb, timeout=60.0)
     
     if _cancel_requested:
         return False
@@ -197,7 +205,7 @@ def run_brom_1click_all_in_one(working_dir: str, patch_engine_func, log_cb=print
     
     # Dump vbmeta as well if possible
     log_cb("📦 Đang rút phân vùng Vbmeta bảo vệ...", "info")
-    run_mtk_command(["r", "vbmeta", dump_vbmeta_path], log_cb=log_cb, timeout=40.0)
+    run_mtk_command(["r", "vbmeta", dump_vbmeta_path], port_name=port_found, log_cb=log_cb, timeout=40.0)
 
     # -------------------------------------------------------------------------
     # STEP 2: AUTO PATCH VENDOR & VBMETA
@@ -217,7 +225,7 @@ def run_brom_1click_all_in_one(working_dir: str, patch_engine_func, log_cb=print
     # STEP 3: FLASH PATCHED VENDOR BACK TO PHONE
     # -------------------------------------------------------------------------
     log_cb("⚡ [BƯỚC 3/4]: Đang nạp lại Vendor bản vá vào điện thoại qua BROM...", "info")
-    success_flash, out_flash = run_mtk_command(["w", "vendor", patched_vendor_path], log_cb=log_cb, timeout=60.0)
+    success_flash, out_flash = run_mtk_command(["w", "vendor", patched_vendor_path], port_name=port_found, log_cb=log_cb, timeout=60.0)
     if not success_flash:
         log_cb("❌ Lỗi nạp lại Vendor vào điện thoại!", "error")
         return False
@@ -227,7 +235,7 @@ def run_brom_1click_all_in_one(working_dir: str, patch_engine_func, log_cb=print
     # STEP 4: REBOOT PHONE INTO ANDROID
     # -------------------------------------------------------------------------
     log_cb("🔄 [BƯỚC 4/4]: Đang gửi lệnh khởi động lại điện thoại vào Android...", "info")
-    run_mtk_command(["reset"], log_cb=log_cb, timeout=15.0)
+    run_mtk_command(["reset"], port_name=port_found, log_cb=log_cb, timeout=15.0)
     
     log_cb("🎉 QUY TRÌNH BROM 1-CLICK RÚT ➔ VÁ ➔ NẠP VENDOR HOÀN TẤT THÀNH CÔNG RỰC RỠ!", "success")
     return True
