@@ -175,10 +175,13 @@ def patch_vendor_image(input_file: str, output_file: str = None) -> str:
         dir_name = os.path.dirname(input_file)
         base_name = os.path.basename(input_file)
         name_no_ext, ext = os.path.splitext(base_name)
-        if name_no_ext.endswith("_patched"):
+        if name_no_ext.upper().startswith("PATCHED_"):
             output_file = os.path.join(dir_name, f"{name_no_ext}{ext}")
+        elif name_no_ext.lower().endswith("_patched"):
+            clean_name = name_no_ext[:-8]
+            output_file = os.path.join(dir_name, f"PATCHED_{clean_name}{ext}")
         else:
-            output_file = os.path.join(dir_name, f"{name_no_ext}_patched{ext}")
+            output_file = os.path.join(dir_name, f"PATCHED_{name_no_ext}{ext}")
 
     file_size = os.path.getsize(input_file)
     print(f"📦 Đang xử lý tệp phân vùng Vendor: [{os.path.basename(input_file)}]")
