@@ -362,6 +362,20 @@ class VoLTEFixerApp(ctk.CTk):
         )
         self.btn_all_in_one.pack(fill="x", pady=(0, 8))
 
+        # Button BROM 1-Click: MediaTek BROM Auto Dump -> Patch -> Flash Engine
+        self.btn_brom_1click = ctk.CTkButton(
+            inner,
+            text="⚡ BROM 1-CLICK: TỰ ĐỘNG RÚT ➔ VÁ ➔ NẠP VENDOR (MTK BROM)",
+            font=FONT_BTN_MAIN,
+            fg_color="#d97706",
+            hover_color="#b45309",
+            text_color="#ffffff",
+            height=44,
+            corner_radius=10,
+            command=self.action_brom_1click_all_in_one
+        )
+        self.btn_brom_1click.pack(fill="x", pady=(0, 8))
+
         # Button 2: Vivo VoLTE Switch Opener (All Android Versions)
         self.btn_vivo_fix = ctk.CTkButton(
             inner,
@@ -739,6 +753,7 @@ class VoLTEFixerApp(ctk.CTk):
         state = "normal" if enabled else "disabled"
         buttons = [
             getattr(self, "btn_all_in_one", None),
+            getattr(self, "btn_brom_1click", None),
             getattr(self, "btn_vivo_fix", None),
             getattr(self, "btn_vendor_oppo", None),
             getattr(self, "btn_vendor_rom_advanced", None),
@@ -762,6 +777,40 @@ class VoLTEFixerApp(ctk.CTk):
     # ---------------------------------------------------------------------------
     # Action Handlers
     # ---------------------------------------------------------------------------
+    def action_brom_1click_all_in_one(self):
+        """Action for single 1-Click BROM Auto Engine: Dump -> Patch -> Flash."""
+        print("\n[DEBUG CLICK] ⚡ Bấm nút: BROM 1-CLICK ALL-IN-ONE (RÚT -> VÁ -> NẠP VENDOR)")
+        
+        msg = (
+            "⚡ QUY TRÌNH VOLTE BROM 1-CLICK TỰ ĐỘNG (DUMP ➔ VÁ ➔ NẠP VENDOR)\n\n"
+            "📌 HƯỚNG DẪN THAO TÁC:\n"
+            "1. Tắt nguồn điện thoại hoàn toàn.\n"
+            "2. Giữ phím GIẢM ÂM LƯỢNG (Volume Down) hoặc Tăng + Giảm Âm Lượng.\n"
+            "3. Cắm cáp USB nối điện thoại với máy tính.\n\n"
+            "Tool sẽ tự động: Rút Vendor gốc -> Vá VoLTE -> Nạp lại vào điện thoại 100% tự động!\n\n"
+            "Bạn đã sẵn sàng cắm cáp ở chế độ BROM chưa?"
+        )
+        if not messagebox.askyesno("Xác nhận BROM 1-Click", msg):
+            return
+
+        self.is_working = True
+        self.set_controls_enabled(False)
+        self.set_status("Đang đứng chờ kết nối MediaTek BROM Mode...", 0.2)
+
+        def _thread():
+            try:
+                from tools.mtk_brom_auto_engine import run_brom_1click_all_in_one
+                from vendor_patcher.vendor_engine import patch_vendor_image
+                
+                work_dir = os.path.abspath("scratch/brom_work")
+                success = run_brom_1click_all_in_one(work_dir, patch_vendor_image, log_cb=self.log)
+                self.after(0, lambda: self._on_action_completed(success, "BROM 1-Click VoLTE Auto Engine"))
+            except Exception as e:
+                self.log(f"⚠ Lỗi BROM 1-Click: {e}", "error")
+                self.after(0, lambda: self._on_action_completed(False, "BROM 1-Click VoLTE Auto Engine"))
+
+        self.executor.submit(_thread)
+
     def _check_selected_device(self) -> bool:
         if not self.selected_device_id:
             devs = self.engine.get_devices()
