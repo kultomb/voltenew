@@ -173,15 +173,19 @@ class VoLTEFixerApp(ctk.CTk):
         # 2. Device Info Card
         self._build_device_card(self.main_container)
 
-        # 3. Split 2-Column Container (Left: Actions Panel, Right: Log Console)
+        # 3. Split 2-Column Container (Left: Actions Panel, Right: Log Console - Locked 50/50 Grid)
         split_body = ctk.CTkFrame(self.main_container, fg_color="transparent")
         split_body.pack(fill="both", expand=True, pady=(0, 6))
 
+        split_body.columnconfigure(0, weight=1, uniform="col_split")
+        split_body.columnconfigure(1, weight=1, uniform="col_split")
+        split_body.rowconfigure(0, weight=1)
+
         left_col = ctk.CTkFrame(split_body, fg_color="transparent")
-        left_col.pack(side="left", fill="both", expand=True, padx=(0, 4))
+        left_col.grid(row=0, column=0, sticky="nsew", padx=(0, 4))
 
         right_col = ctk.CTkFrame(split_body, fg_color="transparent")
-        right_col.pack(side="right", fill="both", expand=True, padx=(4, 0))
+        right_col.grid(row=0, column=1, sticky="nsew", padx=(4, 0))
 
         # Actions Panel (Left Side)
         self._build_actions_panel(left_col)
