@@ -182,17 +182,14 @@ def run_brom_1click_all_in_one(working_dir: str, patch_engine_func, log_cb=print
     dump_vbmeta_path = os.path.join(working_dir, "BROM_dump_vbmeta.img")
 
     # -------------------------------------------------------------------------
-    # STEP 1: NATIVE C++ PRE-SCANNER & DUMP VENDOR
+    # STEP 1: PRE-LOADER VCOM / BROM CONTINUOUS LISTENER & DUMP VENDOR
     # -------------------------------------------------------------------------
     log_cb("⌛ Đang đứng chờ cắm cáp BROM... (Vui lòng tắt nguồn máy, giữ phím TĂNG + GIẢM ÂM LƯỢNG và CẮM CÁP USB)", "info")
     
-    # Run C++ fast listener first
-    port_found = run_cpp_brom_fast_scan(log_cb=log_cb, timeout=30.0)
-
     if _cancel_requested:
         return False
 
-    success_vendor, out_vendor = run_mtk_command(["r", "vendor", dump_vendor_path], port_name=port_found, log_cb=log_cb, timeout=60.0)
+    success_vendor, out_vendor = run_mtk_command(["r", "vendor", dump_vendor_path], port_name=None, log_cb=log_cb, timeout=90.0)
     
     if _cancel_requested:
         return False
@@ -205,7 +202,7 @@ def run_brom_1click_all_in_one(working_dir: str, patch_engine_func, log_cb=print
     
     # Dump vbmeta as well if possible
     log_cb("📦 Đang rút phân vùng Vbmeta bảo vệ...", "info")
-    run_mtk_command(["r", "vbmeta", dump_vbmeta_path], port_name=port_found, log_cb=log_cb, timeout=40.0)
+    run_mtk_command(["r", "vbmeta", dump_vbmeta_path], port_name=None, log_cb=log_cb, timeout=40.0)
 
     # -------------------------------------------------------------------------
     # STEP 2: AUTO PATCH VENDOR & VBMETA

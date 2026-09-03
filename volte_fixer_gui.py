@@ -594,7 +594,7 @@ class VoLTEFixerApp(ctk.CTk):
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL
             )
-            self.log(f"🚀 Đã tự động mở màn hình Android Live (60 FPS) cân đối bên phải cho {device_id}!", "success")
+            self.log(f"✓ Đã kết nối màn hình Android Live (60 FPS) [{device_id}]", "success")
         except Exception as e:
             self.log(f"⚠ Khởi động Scrcpy thất bại: {e}", "warning")
 
@@ -998,9 +998,9 @@ class VoLTEFixerApp(ctk.CTk):
                 from vendor_patcher.vendor_engine import patch_vendor_image
                 out_file = patch_vendor_image(fpath)
                 if out_file:
-                    self.log("🎉 TẠO TỆP VÁ VENDOR THÀNH CÔNG! Tệp bản vá đã lưu tại:", "success")
+                    self.log("✓ Đã tạo thành công tệp vá Vendor VoLTE:", "success")
                     self.log(f"👉 {out_file}", "success")
-                    self.log("👉 HƯỚNG DẪN NẠP UNLOCKTOOL: Chọn Tab MTK -> Boot Device -> Chuột phải vào phân vùng Vendor -> Chọn Write -> Trỏ đến tệp PATCHED_vendor", "info")
+                    self.log("ℹ Hướng dẫn nạp UnlockTool: Chọn Tab MTK -> Boot Device -> Chuột phải vào phân vùng Vendor -> Chọn Write -> Trỏ đến tệp PATCHED_vendor", "info")
                     self.after(0, lambda: messagebox.showinfo("Thành công", f"Đã tạo tệp vá Vendor VoLTE thành công!\n\nTệp đầu ra:\n{out_file}"))
             except Exception as ex:
                 self.log(f"❌ Lỗi tạo tệp vá Vendor: {ex}", "error")
@@ -1009,12 +1009,12 @@ class VoLTEFixerApp(ctk.CTk):
 
     def action_restore_defaults(self):
         """Run Automated Restore directly inside main app console."""
-        self.log("\n🛡️ Bắt đầu khôi phục VoLTE về cài đặt mặc định...", "info")
+        self.log("\nℹ Bắt đầu khôi phục VoLTE về mặc định...", "info")
         def _thread():
             try:
                 from vendor_patcher.restore_engine import main as run_restore
                 run_restore()
-                self.log("🎉 Đã hoàn tất khôi phục cài đặt VoLTE về mặc định nhà sản xuất!", "success")
+                self.log("✓ Đã khôi phục cài đặt VoLTE về mặc định nhà sản xuất", "success")
                 self.after(0, lambda: messagebox.showinfo("Khôi Phục", "Đã hoàn tất khôi phục cài đặt VoLTE về mặc định!"))
             except Exception as ex:
                 self.log(f"⚠ Lỗi khôi phục: {ex}", "error")
@@ -1023,22 +1023,22 @@ class VoLTEFixerApp(ctk.CTk):
 
     def action_nap_vendor_rom_advanced(self):
         """Run Advanced Vendor ROM Flashing & Partition Injection."""
-        print("\n[DEBUG CLICK] 🔥 Bấm nút: NẠP VENDOR NÂNG CAO THẲNG VÀO ROM")
+        print("\n[DEBUG CLICK] Bấm nút: NẠP VENDOR VÀO ROM")
         self.is_working = True
         self.set_controls_enabled(False)
-        self.set_status("Đang thực hiện nạp Vendor Nâng Cao vào ROM...", 0.3)
-        self.log("🔥 Khởi chạy kịch bản Nạp Vendor Nâng Cao vào ROM (Partition Flashing)...", "info")
+        self.set_status("Đang nạp Vendor vào ROM...", 0.3)
+        self.log("ℹ Khởi chạy tiến trình nạp Vendor vào ROM...", "info")
 
         def _thread():
             try:
                 import napkich_vendor_rom_advanced
                 napkich_vendor_rom_advanced.main()
-                self.after(0, lambda: self._on_action_completed(True, "Nạp Vendor Nâng Cao Vào ROM"))
+                self.after(0, lambda: self._on_action_completed(True, "Nạp Vendor Vào ROM"))
             except Exception as ex:
                 import traceback
                 print(f"[DEBUG ERROR] Lỗi khi nạp Vendor ROM:\n{traceback.format_exc()}")
                 self.log(f"⚠ Lỗi nạp Vendor ROM: {ex}", "error")
-                self.after(0, lambda: self._on_action_completed(False, "Nạp Vendor Nâng Cao Vào ROM"))
+                self.after(0, lambda: self._on_action_completed(False, "Nạp Vendor Vào ROM"))
 
         self.executor.submit(_thread)
 
@@ -1046,74 +1046,74 @@ class VoLTEFixerApp(ctk.CTk):
         """Run 5-layer deep scientific diagnostics scan on connected Android device."""
         cur_model = self.lbl_model.cget("text")
         dev_title = f"{cur_model}" if cur_model and cur_model != "Chưa kết nối" else "thiết bị"
-        print(f"\n[DEBUG CLICK] 🔬 Bấm nút: CHẨN ĐOÁN KHOA HỌC CHUYÊN SÂU {dev_title}")
+        print(f"\n[DEBUG CLICK] Bấm nút: CHẨN ĐOÁN HỆ THỐNG {dev_title}")
         self.is_working = True
         self.set_controls_enabled(False)
-        self.set_status("Đang thực hiện chẩn đoán khoa học 5 tầng...", 0.3)
-        self.log(f"🔬 Bắt đầu chẩn đoán khoa học chuyên sâu {dev_title} (5 Tầng System)...", "info")
+        self.set_status("Đang thực hiện chẩn đoán hệ thống...", 0.3)
+        self.log(f"ℹ Bắt đầu chẩn đoán hệ thống {dev_title}...", "info")
 
         def _thread():
             try:
                 import oppo_a31_deep_diagnostics
                 oppo_a31_deep_diagnostics.main()
-                self.after(0, lambda: self._on_action_completed(True, "Chẩn Đoán Khoa Học Chuyên Sâu"))
+                self.after(0, lambda: self._on_action_completed(True, "Chẩn Đoán Hệ Thống"))
             except Exception as ex:
                 import traceback
                 print(f"[DEBUG ERROR] Lỗi khi chẩn đoán:\n{traceback.format_exc()}")
                 self.log(f"⚠ Lỗi chẩn đoán: {ex}", "error")
-                self.after(0, lambda: self._on_action_completed(False, "Chẩn Đoán Khoa Học Chuyên Sâu"))
+                self.after(0, lambda: self._on_action_completed(False, "Chẩn Đoán Hệ Thống"))
 
         self.executor.submit(_thread)
 
     def action_giai_ma_overlay(self):
         """Run root cause discovery and patch extraction."""
-        print("\n[DEBUG CLICK] 🔓 Bấm nút: GIẢI MÃ GỐC RỄ KHÓA VOLTE")
+        print("\n[DEBUG CLICK] Bấm nút: BÓC TÁCH CẤU HÌNH VOLTE")
         self.is_working = True
         self.set_controls_enabled(False)
-        self.set_status("Đang thực hiện giải mã gốc rễ tệp XML cấu hình OPPO...", 0.3)
-        self.log("🔓 Bắt đầu truy tìm & bóc tách bản vá XML mở khóa VoLTE...", "info")
+        self.set_status("Đang giải mã tệp cấu hình...", 0.3)
+        self.log("ℹ Đang bóc tách tệp cấu hình VoLTE XML...", "info")
 
         def _thread():
             try:
                 import oppo_a31_overlay_patcher
                 oppo_a31_overlay_patcher.main()
-                self.after(0, lambda: self._on_action_completed(True, "Giải Mã Gốc Rễ Khóa VoLTE"))
+                self.after(0, lambda: self._on_action_completed(True, "Bóc Tách Cấu Hình VoLTE"))
             except Exception as ex:
                 import traceback
                 print(f"[DEBUG ERROR] Lỗi khi giải mã:\n{traceback.format_exc()}")
                 self.log(f"⚠ Lỗi giải mã: {ex}", "error")
-                self.after(0, lambda: self._on_action_completed(False, "Giải Mã Gốc Rễ Khóa VoLTE"))
+                self.after(0, lambda: self._on_action_completed(False, "Bóc Tách Cấu Hình VoLTE"))
 
         self.executor.submit(_thread)
 
     def action_repack_and_flash_apk(self):
         """Run OppoSimSettings APK repacker and prompt for system flashing."""
-        print("\n[DEBUG CLICK] 📦 Bấm nút: ĐÓNG GÓI & NẠP OPPOSIMSETTINGS PATCHED")
+        print("\n[DEBUG CLICK] Bấm nút: ĐÓNG GÓI OPPOSIMSETTINGS")
         self.is_working = True
         self.set_controls_enabled(False)
-        self.set_status("Đang thực hiện đóng gói OppoSimSettings_Patched.apk...", 0.3)
-        self.log("📦 Đang thay thế tệp XML volte_status=\"1\" và đóng gói APK...", "info")
+        self.set_status("Đang đóng gói OppoSimSettings...", 0.3)
+        self.log("ℹ Đang cập nhật cấu hình và đóng gói APK...", "info")
 
         def _thread():
             try:
                 import repack_opposimsettings_apk
                 repack_opposimsettings_apk.main()
-                self.after(0, lambda: self._on_action_completed(True, "Đóng Gói & Nạp OppoSimSettings Patched"))
+                self.after(0, lambda: self._on_action_completed(True, "Đóng Gói OppoSimSettings Patched"))
             except Exception as ex:
                 import traceback
                 print(f"[DEBUG ERROR] Lỗi khi đóng gói APK:\n{traceback.format_exc()}")
                 self.log(f"⚠ Lỗi đóng gói APK: {ex}", "error")
-                self.after(0, lambda: self._on_action_completed(False, "Đóng Gói & Nạp OppoSimSettings Patched"))
+                self.after(0, lambda: self._on_action_completed(False, "Đóng Gói OppoSimSettings Patched"))
 
         self.executor.submit(_thread)
 
     def action_export_unlocktool(self):
         """Run export package generator for UnlockTool / SP Flash Tool."""
-        print("\n[DEBUG CLICK] 🎁 Bấm nút: TẠO GÓI NẠP CHUYÊN NGHỆP UNLOCKTOOL")
+        print("\n[DEBUG CLICK] Bấm nút: TẠO GÓI NẠP UNLOCKTOOL")
         self.is_working = True
         self.set_controls_enabled(False)
-        self.set_status("Đang gom gói nạp chuyên nghiệp cho UnlockTool...", 0.3)
-        self.log("🎁 Đang tạo thư mục GOI_NAP_UNLOCKTOOL_OPPO...", "info")
+        self.set_status("Đang tạo gói nạp UnlockTool...", 0.3)
+        self.log("ℹ Đang tạo gói nạp UnlockTool...", "info")
 
         def _thread():
             try:
