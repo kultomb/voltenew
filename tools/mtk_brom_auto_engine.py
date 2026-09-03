@@ -1,6 +1,6 @@
 """
 MediaTek BROM 1-Click Automated Engine for HBG VoLTE & IMS Fixer
-Native PreLoader VCOM Serial Listener + BROM Dump, Patch & Flash Pipeline.
+Native C++ Fast Listener + Subprocess Pipeline for High-Speed Connection.
 """
 
 import os
@@ -9,7 +9,9 @@ import re
 import time
 import subprocess
 
-MTK_CLIENT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "mtkclient"))
+TOOLS_DIR = os.path.dirname(__file__)
+CPP_ENGINE_EXE = os.path.join(TOOLS_DIR, "mtk_brom_fast_engine.exe")
+MTK_CLIENT_DIR = os.path.join(TOOLS_DIR, "mtkclient")
 MTK_CLIENT_PY = os.path.join(MTK_CLIENT_DIR, "mtk.py")
 
 _current_brom_process: subprocess.Popen | None = None
@@ -28,6 +30,57 @@ def cancel_brom_process():
         _current_brom_process = None
 
 
+def run_cpp_brom_fast_scan(log_cb=print, timeout: float = 40.0) -> bool:
+    """Runs Native Win32 C++ BROM Engine for sub-millisecond port locking without DTR/RTS resets."""
+    global _current_brom_process, _cancel_requested
+
+    if not os.path.exists(CPP_ENGINE_EXE):
+        return True  # Fallback to python listener if C++ binary is missing
+
+    try:
+        process = subprocess.Popen(
+            [CPP_ENGINE_EXE],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            encoding="utf-8",
+            errors="ignore",
+            cwd=TOOLS_DIR
+        )
+        _current_brom_process = process
+
+        start_time = time.time()
+        while True:
+            if _cancel_requested:
+                process.kill()
+                _current_brom_process = None
+                return False
+
+            line = process.stdout.readline()
+            if not line and process.poll() is not None:
+                break
+            if line:
+                clean_line = line.strip()
+                if clean_line:
+                    if "ĐÃ PHÁT HIỆN CỔNG COM MEDIATEK" in clean_line:
+                        log_cb(f"  ✓ {clean_line}", "success")
+                    elif "⚡" in clean_line or "⌛" in clean_line:
+                        log_cb(f"  {clean_line}", "info")
+
+            if time.time() - start_time > timeout:
+                process.kill()
+                _current_brom_process = None
+                return False
+
+        rc = process.poll()
+        _current_brom_process = None
+        return (rc == 0)
+    except Exception as e:
+        _current_brom_process = None
+        log_cb(f"⚠ C++ Listener notice: {e}", "warning")
+        return True
+
+
 def run_mtk_command(cmd_args: list[str], log_cb=print, timeout: float = 60.0) -> tuple[bool, str]:
     """Runs mtk.py command with --serialport DETECT for direct PreLoader VCOM serial listening."""
     global _current_brom_process, _cancel_requested
@@ -38,10 +91,8 @@ def run_mtk_command(cmd_args: list[str], log_cb=print, timeout: float = 60.0) ->
         return False, err_msg
 
     python_exe = sys.executable
-    # Always use --serialport DETECT to put mtkclient in instant PreLoader VCOM standing-by listener mode
     full_cmd = [python_exe, MTK_CLIENT_PY, "--serialport", "DETECT"] + cmd_args
 
-    # Keywords to filter out verbose loop hints & dot spam
     ignore_keywords = [
         "hint:", "power off", "for brom mode", "for preloader mode",
         "if it is already connected", "please reconnect mobile", "metamodes",
@@ -75,14 +126,11 @@ def run_mtk_command(cmd_args: list[str], log_cb=print, timeout: float = 60.0) ->
             if not line and process.poll() is not None:
                 break
             if line:
-                # Strip ANSI escape color codes
                 clean_line = re.sub(r'\x1b\[[0-9;]*[a-zA-Z]', '', line).strip()
                 
-                # Filter out pure dot lines (e.g. "...", "...........")
                 if clean_line and not re.match(r'^\.+$', clean_line):
                     lower_line = clean_line.lower()
                     
-                    # Detect REAL BROM Connection / Handshake success signal
                     if not handshake_logged and any(k in lower_line for k in ["device detected", "hw code:", "reading partition", "writing partition"]):
                         handshake_logged = True
                         log_cb("✓ Đã nhận diện cổng COM MediaTek & Handshake BROM thành công!", "success")
@@ -111,8 +159,8 @@ def run_mtk_command(cmd_args: list[str], log_cb=print, timeout: float = 60.0) ->
 
 def run_brom_1click_all_in_one(working_dir: str, patch_engine_func, log_cb=print) -> bool:
     """
-    1-Click Automated BROM Engine:
-    Step 1: Start PreLoader VCOM listener -> Wait for USB cable -> Dump vendor & vbmeta
+    1-Click Automated Hybrid BROM Engine:
+    Step 1: Native C++ Fast Scan -> PreLoader VCOM listener -> Dump vendor & vbmeta
     Step 2: Dynamic Auto-Patch vendor & disable vbmeta DM-Verity
     Step 3: Flash patched vendor & vbmeta back to phone
     Step 4: Reboot phone into Android
@@ -126,10 +174,16 @@ def run_brom_1click_all_in_one(working_dir: str, patch_engine_func, log_cb=print
     dump_vbmeta_path = os.path.join(working_dir, "BROM_dump_vbmeta.img")
 
     # -------------------------------------------------------------------------
-    # STEP 1: START PRELOADER VCOM LISTENER & DUMP VENDOR
+    # STEP 1: NATIVE C++ PRE-SCANNER & DUMP VENDOR
     # -------------------------------------------------------------------------
     log_cb("⌛ Đang đứng chờ cắm cáp BROM... (Vui lòng tắt nguồn máy, giữ phím TĂNG + GIẢM ÂM LƯỢNG và CẮM CÁP USB)", "info")
     
+    # Run C++ fast listener first
+    run_cpp_brom_fast_scan(log_cb=log_cb, timeout=30.0)
+
+    if _cancel_requested:
+        return False
+
     success_vendor, out_vendor = run_mtk_command(["r", "vendor", dump_vendor_path], log_cb=log_cb, timeout=60.0)
     
     if _cancel_requested:
