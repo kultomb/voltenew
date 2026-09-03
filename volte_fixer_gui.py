@@ -571,48 +571,97 @@ class VoLTEFixerApp(ctk.CTk):
             else:
                 messagebox.showwarning("Cảnh báo", "Vui lòng kết nối thiết bị Android trước!")
 
-    # ---------------------------------------------------------------------------
-    # ADB Device Monitor Thread (Parity with HBGAdBlocker DeviceManager)
-    # ---------------------------------------------------------------------------
+    def scan_all_connected_devices(self) -> tuple[list[dict], list[str]]:
+        """
+        Scans both ADB Devices and Windows COM Ports (MediaTek / Qualcomm / VCOM).
+        Returns a list of device dicts and formatted dropdown options.
+        """
+        all_devices = []
+        dropdown_options = []
+
+        # 1. Scan ADB devices
+        try:
+            adb_devs = self.engine.get_devices()
+            for d in adb_devs:
+                did = d["id"]
+                dmodel = d.get("model", did)
+                opt_str = f"📱 [ADB] {dmodel} ({did})"
+                all_devices.append({"type": "adb", "id": did, "model": dmodel, "display": opt_str})
+                dropdown_options.append(opt_str)
+        except Exception:
+            pass
+
+        # 2. Scan COM Ports (MediaTek / Qualcomm / VCOM / Serial)
+        try:
+            import serial.tools.list_ports
+            for p in serial.tools.list_ports.comports():
+                dev_name = p.device  # e.g. "COM27"
+                desc = p.description or "Serial Port"
+                hwid = str(p.hwid).upper()
+                
+                # Exclude default motherboard COM1 unless specifically requested
+                if dev_name.upper() == "COM1" and "PNP0501" in hwid:
+                    continue
+                    
+                opt_str = f"⚡ [COM] {dev_name} — {desc}"
+                all_devices.append({"type": "com", "id": dev_name, "model": desc, "display": opt_str})
+                dropdown_options.append(opt_str)
+        except Exception:
+            pass
+
+        if not dropdown_options:
+            dropdown_options = ["Chưa kết nối thiết bị ADB / Cổng COM nào"]
+
+        return all_devices, dropdown_options
+
     def start_device_auto_check(self):
         Thread(target=self._adb_monitor_thread, daemon=True).start()
 
     def _adb_monitor_thread(self):
-        last_device_id = None
+        last_signature = None
 
         while self.is_running:
             try:
                 if not self.is_working:
-                    connected, reason = self.engine.refresh()
-                    if connected and self.engine.dm and self.engine.dm.serial:
-                        cur_id = self.engine.dm.serial
-                        cur_model = self.engine.dm.device_model or cur_id
-                        if last_device_id != cur_id:
-                            last_device_id = cur_id
-                            self.selected_device_id = cur_id
-                            options = [f"{cur_model} ({cur_id})"]
-                            self.devices = [{"id": cur_id, "model": cur_model}]
-                            self.after(0, lambda m=cur_model, opts=options, cid=cur_id: self._on_device_connected(m, opts, cid))
-                    else:
-                        devs = self.engine.get_devices()
+                    devs, options = self.scan_all_connected_devices()
+                    sig = " | ".join(options)
+                    
+                    if sig != last_signature:
+                        last_signature = sig
                         if devs:
-                            cur_id = devs[0]["id"]
-                            cur_model = devs[0]["model"]
-                            if last_device_id != cur_id:
-                                last_device_id = cur_id
+                            first = devs[0]
+                            if first["type"] == "adb":
+                                cur_id = first["id"]
+                                cur_model = first["model"]
                                 self.selected_device_id = cur_id
-                                options = [f"{cur_model} ({cur_id})"]
                                 self.devices = devs
                                 self.after(0, lambda m=cur_model, opts=options, cid=cur_id: self._on_device_connected(m, opts, cid))
-                        elif last_device_id is not None:
-                            last_device_id = None
+                            elif first["type"] == "com":
+                                com_port = first["id"]
+                                com_desc = first["model"]
+                                self.selected_device_id = None
+                                self.devices = devs
+                                self.after(0, lambda p=com_port, d=com_desc, opts=options: self._on_com_port_connected(p, d, opts))
+                        else:
                             self.devices = []
                             self.selected_device_id = None
                             self.after(0, self._on_adb_disconnected)
 
-                time.sleep(1.2 if last_device_id else 2.5)
+                time.sleep(1.0 if last_signature and "Chưa kết nối" not in last_signature else 2.0)
             except Exception:
-                time.sleep(2.5)
+                time.sleep(2.0)
+
+    def _on_com_port_connected(self, com_port: str, com_desc: str, options: list[str]):
+        self.status_badge.configure(text=f"● Cổng COM {com_port} (BROM Mode)", text_color="#f59e0b")
+        self.device_option.configure(values=options)
+        self.device_option.set(options[0])
+        self.lbl_model.configure(text=f"{com_desc}")
+        self.lbl_brand.configure(text="MediaTek / USB VCOM")
+        self.lbl_android.configure(text="BROM / Preloader Mode")
+        self.lbl_sim.configure(text="Phân vùng Vendor / Vbmeta")
+        self.lbl_ims.configure(text="Sẵn sàng Nạp 1-Click")
+        self.set_status(f"✓ Đã phát hiện Cổng COM {com_port}: {com_desc}", 1.0)
+        self.log(f"✓ Cổng COM {com_port} đã sẵn sàng: {com_desc}", "success")
 
     def _on_device_connected(self, model_name: str, options: list[str], dev_id: str):
         self.status_badge.configure(text="● Đã kết nối ADB", text_color=THEME["success"])
