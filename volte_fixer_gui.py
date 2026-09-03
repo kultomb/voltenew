@@ -847,6 +847,9 @@ class VoLTEFixerApp(ctk.CTk):
             except Exception as e:
                 self.log(f"⚠ Lỗi BROM 1-Click: {e}", "error")
                 self.after(0, lambda: self._on_action_completed(False, "BROM 1-Click VoLTE Auto Engine"))
+            finally:
+                self.is_working = False
+                self.set_controls_enabled(True)
 
         self.executor.submit(_thread)
 

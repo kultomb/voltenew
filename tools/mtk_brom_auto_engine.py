@@ -58,43 +58,81 @@ def run_mtk_command(cmd_args: list, log_cb=print, timeout: int = 120) -> tuple[b
         start_time = time.time()
         last_milestone = -1
         import re
+        import queue
+        import threading
+
+        def enqueue_output(out, q):
+            try:
+                for line in iter(out.readline, ''):
+                    q.put(line)
+                out.close()
+            except Exception:
+                pass
+
+        q = queue.Queue()
+        t = threading.Thread(target=enqueue_output, args=(process.stdout, q), daemon=True)
+        t.start()
+
+        com_check_time = time.time()
 
         while True:
-            line = process.stdout.readline()
-            if not line and process.poll() is not None:
-                break
-            if line:
-                cleaned = line.strip()
-                if cleaned:
-                    # Strip ANSI escape codes
-                    clean_text = re.sub(r'\x1b\[[0-9;]*[mK]', '', cleaned).strip()
-                    if not clean_text or clean_text.startswith("...") or clean_text.startswith("...."):
-                        continue
-                        
-                    lower_line = clean_text.lower()
-                    # Skip verbose spam hint and error retry lines
-                    if any(kw in lower_line for kw in ignore_keywords):
-                        output_lines.append(clean_text)
-                        continue
+            try:
+                line = q.get_nowait()
+            except queue.Empty:
+                line = None
 
-                    # Filter repetitive fine-grained progress lines
-                    if "progress:" in lower_line:
-                        match = re.search(r'(\d+(?:\.\d+)?)\s*%', clean_text)
-                        if match:
-                            pct = float(match.group(1))
-                            milestone = int(pct // 10) * 10
-                            if milestone != last_milestone and milestone % 10 == 0:
-                                last_milestone = milestone
-                                log_cb(f"  ⚡ Tiến trình BROM: {milestone}%...", "info")
-                        output_lines.append(clean_text)
-                        continue
+            if line is None:
+                if process.poll() is not None:
+                    break
 
-                    log_cb(f"  ⚡ {clean_text}", "info")
+                # Monitor if target COM port was unplugged
+                if com_port and time.time() - com_check_time > 1.2:
+                    com_check_time = time.time()
+                    try:
+                        import serial.tools.list_ports
+                        active_ports = [p.device.upper() for p in serial.tools.list_ports.comports()]
+                        if com_port.upper() not in active_ports:
+                            process.kill()
+                            log_cb(f"⚠️ Cáp USB [{com_port}] đã bị rút đột ngột! Đã tự động hủy tác vụ BROM an toàn.", "warning")
+                            return False, "COM Unplugged"
+                    except Exception:
+                        pass
+
+                if time.time() - start_time > timeout:
+                    process.kill()
+                    log_cb("⏱️ Hết thời gian chờ kết nối BROM (Timeout). Đã ngắt tiến trình.", "warning")
+                    return False, "Timeout"
+
+                time.sleep(0.08)
+                continue
+
+            cleaned = line.strip()
+            if cleaned:
+                # Strip ANSI escape codes
+                clean_text = re.sub(r'\x1b\[[0-9;]*[mK]', '', cleaned).strip()
+                if not clean_text or clean_text.startswith("...") or clean_text.startswith("...."):
+                    continue
+                    
+                lower_line = clean_text.lower()
+                # Skip verbose spam hint and error retry lines
+                if any(kw in lower_line for kw in ignore_keywords):
                     output_lines.append(clean_text)
-            if time.time() - start_time > timeout:
-                process.kill()
-                log_cb("⏱️ Hết thời gian chờ kết nối BROM (Timeout).", "warning")
-                return False, "Timeout"
+                    continue
+
+                # Filter repetitive fine-grained progress lines
+                if "progress:" in lower_line:
+                    match = re.search(r'(\d+(?:\.\d+)?)\s*%', clean_text)
+                    if match:
+                        pct = float(match.group(1))
+                        milestone = int(pct // 10) * 10
+                        if milestone != last_milestone and milestone % 10 == 0:
+                            last_milestone = milestone
+                            log_cb(f"  ⚡ Tiến trình BROM: {milestone}%...", "info")
+                    output_lines.append(clean_text)
+                    continue
+
+                log_cb(f"  ⚡ {clean_text}", "info")
+                output_lines.append(clean_text)
 
         rc = process.poll()
         full_out = "\n".join(output_lines)
