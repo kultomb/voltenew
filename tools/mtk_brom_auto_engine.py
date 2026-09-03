@@ -93,10 +93,35 @@ def run_mtk_command(cmd_args: list, log_cb=print, timeout: int = 120) -> tuple[b
         log_cb(f"❌ Lỗi thực thi MTK BROM: {e}", "error")
         return False, str(e)
 
+def find_mtk_com_port(timeout: int = 45, log_cb=print) -> str:
+    """
+    Monitors Windows COM ports for MediaTek USB VCOM / BootROM Port (VID: 0E8D).
+    Returns the COM port string e.g. 'COM5' as soon as it appears.
+    """
+    try:
+        import serial.tools.list_ports
+    except ImportError:
+        return None
+
+    log_cb("⌛ Đang quét trực tiếp Cổng COM MediaTek USB (VID_0E8D)...", "info")
+    start_t = time.time()
+    
+    while time.time() - start_t < timeout:
+        for p in serial.tools.list_ports.comports():
+            hwid = str(p.hwid).upper()
+            desc = str(p.description).upper()
+            if "0E8D" in hwid or "MEDIATEK" in desc or "PRELOADER" in desc or "MTK" in desc:
+                port_name = p.device
+                log_cb(f"✓ Đã phát hiện Cổng COM Chuẩn MediaTek: [{port_name}] ({p.description})!", "success")
+                return port_name
+        time.sleep(0.15)
+        
+    return None
+
 def run_brom_1click_all_in_one(working_dir: str, patch_engine_func, log_cb=print) -> bool:
     """
     1-Click Automated BROM Engine:
-    Step 1: Wait for BROM connection -> Dump vendor & vbmeta from BROM
+    Step 1: Wait for MediaTek COM Port -> Dump vendor & vbmeta from BROM
     Step 2: Auto Patch vendor & disable vbmeta DM-Verity
     Step 3: Flash patched vendor & vbmeta back to phone
     Step 4: Send reset command to reboot into Android
@@ -107,31 +132,27 @@ def run_brom_1click_all_in_one(working_dir: str, patch_engine_func, log_cb=print
     dump_vbmeta_path = os.path.join(working_dir, "BROM_dump_vbmeta.img")
     
     # -------------------------------------------------------------------------
-    # STEP 1: WAIT FOR BROM CONNECTION & DUMP VENDOR
+    # STEP 1: MONITOR COM PORT & DUMP VENDOR
     # -------------------------------------------------------------------------
-    log_cb("⌛ Đang đứng chờ tín hiệu cắm cáp BROM... (Vui lòng cắm cáp USB)", "info")
-    
-    connected_detected = False
-    
-    def log_filter_cb(msg_text: str, msg_type: str = "info"):
-        nonlocal connected_detected
-        lower = msg_text.lower()
-        if not connected_detected and ("device" in lower or "chip" in lower or "read" in lower or "handshake" in lower or "sync" in lower or "connected" in lower):
-            connected_detected = True
-            log_cb("✓ Đã nhận tín hiệu BROM Mode MediaTek thành công!", "success")
-            log_cb("📦 [BƯỚC 1/4]: Đang rút (Dump) phân vùng Vendor...", "info")
-        log_cb(msg_text, msg_type)
+    com_port = find_mtk_com_port(timeout=45, log_cb=log_cb)
+    if not com_port:
+        log_cb("❌ Chưa nhận diện được Cổng COM MediaTek. Vui lòng giữ phím TĂNG + GIẢM ÂM LƯỢNG và cắm cáp lại!", "error")
+        return False
 
-    success_vendor, out_vendor = run_mtk_command(["r", "vendor", dump_vendor_path], log_cb=log_filter_cb, timeout=90)
+    log_cb("📦 [BƯỚC 1/4]: Đang rút (Dump) phân vùng Vendor qua Cổng COM...", "info")
+    
+    vendor_args = ["r", "vendor", dump_vendor_path, "--serialport", com_port]
+    success_vendor, out_vendor = run_mtk_command(vendor_args, log_cb=log_cb, timeout=90)
     if not success_vendor or not os.path.exists(dump_vendor_path):
-        log_cb("❌ Chưa nhận được kết nối BROM hoặc không thể rút Vendor. Hãy kiểm tra lại phím bấm TĂNG + GIẢM ÂM LƯỢNG và cáp USB!", "error")
+        log_cb("❌ Không thể rút phân vùng Vendor. Hãy thử lại!", "error")
         return False
         
     log_cb(f"✓ Đã rút thành công Vendor gốc ({os.path.getsize(dump_vendor_path) / (1024*1024):.2f} MB)", "success")
     
     # Dump vbmeta as well if possible
     log_cb("📦 Đang rút phân vùng Vbmeta bảo vệ...", "info")
-    run_mtk_command(["r", "vbmeta", dump_vbmeta_path], log_cb=log_cb, timeout=40)
+    vbmeta_args = ["r", "vbmeta", dump_vbmeta_path, "--serialport", com_port]
+    run_mtk_command(vbmeta_args, log_cb=log_cb, timeout=40)
 
     # -------------------------------------------------------------------------
     # STEP 2: AUTO PATCH VENDOR & VBMETA
@@ -163,7 +184,8 @@ def run_brom_1click_all_in_one(working_dir: str, patch_engine_func, log_cb=print
     # -------------------------------------------------------------------------
     log_cb("🚀 [BƯỚC 3/4]: Đang tự động nạp bản vá Vendor đã vá trở lại điện thoại qua BROM...", "info")
     
-    success_flash, out_flash = run_mtk_command(["w", "vendor", patched_vendor_path], log_cb=log_cb, timeout=120)
+    flash_vendor_args = ["w", "vendor", patched_vendor_path, "--serialport", com_port]
+    success_flash, out_flash = run_mtk_command(flash_vendor_args, log_cb=log_cb, timeout=120)
     if not success_flash:
         log_cb("❌ Lỗi khi nạp Vendor đã vá vào điện thoại!", "error")
         return False
@@ -172,13 +194,15 @@ def run_brom_1click_all_in_one(working_dir: str, patch_engine_func, log_cb=print
     
     if patched_vbmeta_path and os.path.exists(patched_vbmeta_path):
         log_cb("🚀 Đang nạp Vbmeta đã tắt DM-Verity vào máy...", "info")
-        run_mtk_command(["w", "vbmeta", patched_vbmeta_path], log_cb=log_cb, timeout=40)
+        flash_vbmeta_args = ["w", "vbmeta", patched_vbmeta_path, "--serialport", com_port]
+        run_mtk_command(flash_vbmeta_args, log_cb=log_cb, timeout=40)
 
     # -------------------------------------------------------------------------
     # STEP 4: REBOOT PHONE BACK INTO ANDROID
     # -------------------------------------------------------------------------
     log_cb("🔄 [BƯỚC 4/4]: Đang gửi lệnh khởi động lại điện thoại vào Android...", "info")
-    run_mtk_command(["reset"], log_cb=log_cb, timeout=15)
+    reset_args = ["reset", "--serialport", com_port]
+    run_mtk_command(reset_args, log_cb=log_cb, timeout=15)
     
     log_cb("==================================================================", "success")
     log_cb("🎉 HOÀN THÀNH 100%! QUY TRÌNH BROM 1-CLICK ĐÃ VÁ VOLTE THÀNH CÔNG!", "success")
