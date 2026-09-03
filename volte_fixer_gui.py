@@ -781,21 +781,17 @@ class VoLTEFixerApp(ctk.CTk):
         """Action for single 1-Click BROM Auto Engine: Dump -> Patch -> Flash."""
         print("\n[DEBUG CLICK] ⚡ Bấm nút: BROM 1-CLICK ALL-IN-ONE (RÚT -> VÁ -> NẠP VENDOR)")
         
-        msg = (
-            "⚡ QUY TRÌNH VOLTE BROM 1-CLICK TỰ ĐỘNG (DUMP ➔ VÁ ➔ NẠP VENDOR)\n\n"
-            "📌 HƯỚNG DẪN THAO TÁC:\n"
-            "1. Tắt nguồn điện thoại hoàn toàn.\n"
-            "2. Giữ phím GIẢM ÂM LƯỢNG (Volume Down) hoặc Tăng + Giảm Âm Lượng.\n"
-            "3. Cắm cáp USB nối điện thoại với máy tính.\n\n"
-            "Tool sẽ tự động: Rút Vendor gốc -> Vá VoLTE -> Nạp lại vào điện thoại 100% tự động!\n\n"
-            "Bạn đã sẵn sàng cắm cáp ở chế độ BROM chưa?"
-        )
-        if not messagebox.askyesno("Xác nhận BROM 1-Click", msg):
-            return
-
         self.is_working = True
         self.set_controls_enabled(False)
         self.set_status("Đang đứng chờ kết nối MediaTek BROM Mode...", 0.2)
+        
+        self.log("==================================================================", "info")
+        self.log("⚡ QUY TRÌNH VOLTE BROM 1-CLICK TỰ ĐỘNG (DUMP ➔ VÁ ➔ NẠP VENDOR)", "info")
+        self.log("📌 HƯỚNG DẪN THAO TÁC CẮM MÁY BROM:", "warning")
+        self.log("   1. Tắt nguồn điện thoại hoàn toàn.", "warning")
+        self.log("   2. Giữ phím GIẢM ÂM LƯỢNG (hoặc Tăng + Giảm Âm Lượng).", "warning")
+        self.log("   3. Cắm cáp USB nối điện thoại vào máy tính...", "warning")
+        self.log("==================================================================", "info")
 
         def _thread():
             try:
