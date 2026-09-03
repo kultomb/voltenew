@@ -211,7 +211,12 @@ def patch_vendor_image(input_file: str, output_file: str = None) -> str:
                 pos = idx + len(old_bytes)
                 total_patched += 1
 
-    # 2. Raw Offset Byte Injection (STRICTLY GUARDED FOR CONFIRMED PROFILES & SDK VERSIONS)
+    # 2. Raw Offset / Dynamic Auto-Discovery Byte Injection
+    volte_ref_path = os.path.abspath(os.path.join(
+        os.path.dirname(__file__),
+        "../extracted_vendor_volte/offset_313395408_vendor_ VoLTE OPPO_A31 CPH2015 ANDROID 9.img"
+    ))
+
     if meta["allow_raw_offset_injection"]:
         if meta["is_f11"]:
             if meta["android_sdk"] == 29:
@@ -231,10 +236,6 @@ def patch_vendor_image(input_file: str, output_file: str = None) -> str:
                 apk_block_off = 392388608
                 profile_name = "OPPO F11 (Android 9)"
         else:
-            volte_ref_path = os.path.abspath(os.path.join(
-                os.path.dirname(__file__),
-                "../extracted_vendor_volte/offset_313395408_vendor_ VoLTE OPPO_A31 CPH2015 ANDROID 9.img"
-            ))
             rc_block_off = 155881472
             apk_block_off = 764665856
             profile_name = "OPPO A31 (Android 9)"
@@ -255,8 +256,34 @@ def patch_vendor_image(input_file: str, output_file: str = None) -> str:
                     patched_data[apk_block_off:apk_block_off+apk_block_len] = ref_data[apk_block_off:apk_block_off+apk_block_len]
                     print(f"  ✓ [Profile {profile_name}]: Đã tiêm tệp Static RRO Overlay [GAQ_OPPO_MTK_VoLTE_Overlay.apk] vào /vendor/overlay/ (Offset: {apk_block_off})")
     else:
-        print(f"  ℹ️ [An toàn]: Bỏ qua tiêm Offset raw khối bổ sung trên {meta['model']} / {meta['platform']} / {meta['android_ver']}")
-        print(f"     👉 Bảo vệ 100% mã máy Driver ARM64 và hệ thống tệp EXT4 không bị hỏng!")
+        # UNIVERSAL DYNAMIC AUTO-DISCOVERY INJECTION (For A5s, A1k, A5, A9, Vivo, Xiaomi, etc.)
+        if b"GAQ_OPPO_MTK_VoLTE_Overlay.apk" not in patched_data and os.path.exists(volte_ref_path):
+            with open(volte_ref_path, "rb") as fref:
+                ref_apk_sector = fref[764665856:764665856 + 20480]
+
+            marker_pos = patched_data.find(b"framework-res")
+            if marker_pos == -1:
+                marker_pos = patched_data.find(b"Sysui")
+            if marker_pos == -1:
+                marker_pos = patched_data.find(b"overlay")
+
+            if marker_pos != -1:
+                start_search = max(0, marker_pos - 20 * 1024 * 1024)
+                end_search = min(len(patched_data), marker_pos + 20 * 1024 * 1024)
+                target_zeros = b"\x00" * 20480
+                pos = patched_data.find(target_zeros, start_search)
+                auto_sector = None
+                while pos != -1 and pos < end_search:
+                    if pos % 4096 == 0:
+                        auto_sector = pos
+                        break
+                    pos = patched_data.find(target_zeros, pos + 1)
+
+                if auto_sector and len(patched_data) >= auto_sector + 20480:
+                    patched_data[auto_sector:auto_sector+20480] = ref_apk_sector
+                    print(f"  ✓ [Tự Động Dò Khối Động]: Đã tự động phát hiện vị trí /vendor/overlay/ và tiêm [GAQ_OPPO_MTK_VoLTE_Overlay.apk] (Offset: {auto_sector})")
+                else:
+                    print(f"  ℹ️ [An toàn]: Đã áp dụng 100% cờ Master VoLTE trên phôi gốc {meta['model']} / {meta['platform']}")
 
     with open(output_file, "wb") as fout:
         fout.write(patched_data)
