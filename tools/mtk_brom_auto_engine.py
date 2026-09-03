@@ -48,7 +48,8 @@ def run_mtk_command(cmd_args: list, log_cb=print, timeout: int = 40) -> tuple[bo
         return False, err_msg
 
     python_exe = sys.executable
-    full_cmd = [python_exe, MTK_CLIENT_PY] + cmd_args
+    # Always use --serialport DETECT for instant low-latency MTK BROM COM Port handshake
+    full_cmd = [python_exe, MTK_CLIENT_PY, "--serialport", "DETECT"] + cmd_args
     
     # Filter list for spam lines to ignore
     ignore_keywords = [
