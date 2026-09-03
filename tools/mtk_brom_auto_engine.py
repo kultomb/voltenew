@@ -142,7 +142,7 @@ def run_mtk_command(cmd_args: list, log_cb=print, timeout: int = 120) -> tuple[b
         log_cb(f"❌ Lỗi thực thi MTK BROM: {e}", "error")
         return False, str(e)
 
-def find_mtk_com_port(timeout: int = 45, log_cb=print) -> str:
+def find_mtk_com_port(timeout: int = 40, log_cb=print) -> str:
     """
     Monitors Windows COM ports for MediaTek USB VCOM / BootROM Port (VID: 0E8D).
     Returns the COM port string e.g. 'COM5' as soon as it appears.
@@ -152,7 +152,6 @@ def find_mtk_com_port(timeout: int = 45, log_cb=print) -> str:
     except ImportError:
         return None
 
-    log_cb("⌛ Đang quét trực tiếp Cổng COM MediaTek USB (VID_0E8D)...", "info")
     start_t = time.time()
     
     while time.time() - start_t < timeout:
@@ -161,7 +160,8 @@ def find_mtk_com_port(timeout: int = 45, log_cb=print) -> str:
             desc = str(p.description).upper()
             if "0E8D" in hwid or "MEDIATEK" in desc or "PRELOADER" in desc or "MTK" in desc:
                 port_name = p.device
-                log_cb(f"✓ Đã phát hiện Cổng COM Chuẩn MediaTek: [{port_name}] ({p.description})!", "success")
+                log_cb(f"✓ Đã kết nối MediaTek [{port_name}] ({p.description})", "success")
+                time.sleep(0.35)  # Allow Windows USB serial driver to stabilize handle
                 return port_name
         time.sleep(0.15)
         
@@ -183,13 +183,12 @@ def run_brom_1click_all_in_one(working_dir: str, patch_engine_func, log_cb=print
     # -------------------------------------------------------------------------
     # STEP 1: MONITOR COM PORT & DUMP VENDOR
     # -------------------------------------------------------------------------
-    com_port = find_mtk_com_port(timeout=40, log_cb=log_cb)
+    com_port = find_mtk_com_port(timeout=35, log_cb=log_cb)
     if not com_port:
         log_cb("❌ Chưa nhận diện được Cổng COM MediaTek. Vui lòng giữ phím TĂNG + GIẢM ÂM LƯỢNG và cắm cáp lại!", "error")
         return False
 
-    log_cb(f"📦 [BƯỚC 1/4]: Đang kết nối trực tiếp Cổng [{com_port}] để rút phôi Vendor...", "info")
-    log_cb(f"  ⚡ [BROM {com_port}]: Đang thực hiện kết nối Handshake & đọc phân vùng Vendor (Vui lòng giữ nguyên cáp USB)...", "info")
+    log_cb(f"📦 [BƯỚC 1/4]: Đang kết nối Cổng [{com_port}] để rút Vendor...", "info")
     
     # Pass --noreconnect to avoid re-triggering handshake on an active COM session
     vendor_args = ["r", "vendor", dump_vendor_path, "--serialport", com_port, "--noreconnect"]

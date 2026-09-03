@@ -831,10 +831,9 @@ class VoLTEFixerApp(ctk.CTk):
         
         self.is_working = True
         self.set_controls_enabled(False)
-        self.set_status("Đang đứng chờ kết nối MediaTek BROM Mode...", 0.2)
+        self.set_status("Đang chờ kết nối MediaTek BROM Mode...", 0.2)
         
         self.log("⚡ BROM 1-CLICK: Tắt nguồn máy ➔ Giữ phím TĂNG + GIẢM ÂM LƯỢNG ➔ Cắm cáp USB", "warning")
-        self.log("⌛ Đang đứng chờ cắm cáp kết nối MediaTek BROM Mode...", "info")
 
         def _thread():
             try:
@@ -1604,7 +1603,26 @@ class VoLTEFixerApp(ctk.CTk):
         self.executor.submit(self._fetch_device_details_async, self.selected_device_id)
 
 
+def ensure_single_instance():
+    try:
+        import ctypes
+        mutex_name = "Global\\HBG_VoLTE_Fixer_Tool_SingleInstance_Mutex"
+        kernel32 = ctypes.windll.kernel32
+        mutex = kernel32.CreateMutexW(None, False, mutex_name)
+        last_error = kernel32.GetLastError()
+        if last_error == 183:  # ERROR_ALREADY_EXISTS
+            import tkinter as tk
+            from tkinter import messagebox
+            root = tk.Tk()
+            root.withdraw()
+            messagebox.showwarning("Cảnh báo", "Ứng dụng HBG VoLTE Fixer Tool đang được mở trên máy tính!\nVui lòng đóng ứng dụng cũ trước khi mở mới.")
+            sys.exit(0)
+        return mutex
+    except Exception:
+        return None
+
 def main():
+    _mutex = ensure_single_instance()
     app = VoLTEFixerApp()
     app.mainloop()
 
