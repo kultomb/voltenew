@@ -799,19 +799,13 @@ class VoLTEFixerApp(ctk.CTk):
 
     def _apply_controls_state(self, enabled: bool):
         state = "normal" if enabled else "disabled"
+        # Only action panel buttons are locked during active background operations
         buttons = [
             getattr(self, "btn_all_in_one", None),
             getattr(self, "btn_brom_1click", None),
             getattr(self, "btn_vivo_fix", None),
             getattr(self, "btn_vendor_oppo", None),
-            getattr(self, "btn_vendor_rom_advanced", None),
-            getattr(self, "btn_deep_diagnostics", None),
-            getattr(self, "btn_giai_ma_overlay", None),
-            getattr(self, "btn_repack_apk", None),
-            getattr(self, "btn_export_unlocktool", None),
             getattr(self, "btn_secret_codes", None),
-            getattr(self, "btn_refresh", None),
-            getattr(self, "btn_live_screen", None),
         ]
         for btn in buttons:
             if btn is not None:
@@ -833,7 +827,7 @@ class VoLTEFixerApp(ctk.CTk):
     # Action Handlers
     # ---------------------------------------------------------------------------
     def action_stop_brom_process(self):
-        """Cancels any running BROM process immediately and unlocks controls."""
+        """Cancels any running BROM process immediately and unlocks controls (Flicker-Free)."""
         print("\n[DEBUG CLICK] 🛑 Bấm nút: DỪNG TIẾN TRÌNH BROM")
         try:
             from tools.mtk_brom_auto_engine import cancel_brom_process
@@ -847,8 +841,7 @@ class VoLTEFixerApp(ctk.CTk):
                 text="⚡ BROM 1-CLICK: TỰ ĐỘNG RÚT ➔ VÁ ➔ NẠP VENDOR (MTK BROM)",
                 fg_color=THEME["btn_glass_bg"],
                 hover_color=THEME["btn_glass_hover"],
-                border_color=THEME["primary_accent"],
-                state="normal"
+                border_color=THEME["primary_accent"]
             )
         self.is_working = False
         self.set_controls_enabled(True)
@@ -856,7 +849,7 @@ class VoLTEFixerApp(ctk.CTk):
         self.log("🛑 Đã dừng tiến trình BROM và mở lại giao diện!", "warning")
 
     def action_brom_1click_all_in_one(self):
-        """Action for single 1-Click BROM Auto Engine with Dynamic Toggle Button."""
+        """Action for single 1-Click BROM Auto Engine with Dynamic Toggle Button (Flicker-Free)."""
         if getattr(self, "brom_running", False):
             # User clicked while running -> STOP BROM!
             self.action_stop_brom_process()
@@ -873,8 +866,7 @@ class VoLTEFixerApp(ctk.CTk):
                 text="🛑 DỪNG TIẾN TRÌNH BROM (STOP)",
                 fg_color=THEME["danger"],
                 hover_color=THEME["danger_hover"],
-                border_color=THEME["danger"],
-                state="normal"
+                border_color=THEME["danger"]
             )
             
         self.set_controls_enabled(False)
