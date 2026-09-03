@@ -79,26 +79,35 @@ def run_mtk_command(cmd_args: list, log_cb=print, timeout: int = 120) -> tuple[b
 def run_brom_1click_all_in_one(working_dir: str, patch_engine_func, log_cb=print) -> bool:
     """
     1-Click Automated BROM Engine:
-    Step 1: Dump vendor & vbmeta from BROM
+    Step 1: Wait for BROM connection -> Dump vendor & vbmeta from BROM
     Step 2: Auto Patch vendor & disable vbmeta DM-Verity
     Step 3: Flash patched vendor & vbmeta back to phone
     Step 4: Send reset command to reboot into Android
     """
-    log_cb("⚡ BẮT ĐẦU QUY TRÌNH VOLTE BROM 1-CLICK TỰ ĐỘNG", "info")
-    
     os.makedirs(working_dir, exist_ok=True)
     
     dump_vendor_path = os.path.join(working_dir, "BROM_dump_vendor.img")
     dump_vbmeta_path = os.path.join(working_dir, "BROM_dump_vbmeta.img")
     
     # -------------------------------------------------------------------------
-    # STEP 1: DUMP VENDOR & VBMETA FROM BROM
+    # STEP 1: WAIT FOR BROM CONNECTION & DUMP VENDOR
     # -------------------------------------------------------------------------
-    log_cb("📦 [BƯỚC 1/4]: Đang rút (Dump) phân vùng Vendor từ BROM...", "info")
+    log_cb("⌛ Đang đứng chờ tín hiệu cắm cáp BROM... (Vui lòng cắm cáp USB)", "info")
     
-    success_vendor, out_vendor = run_mtk_command(["r", "vendor", dump_vendor_path], log_cb=log_cb, timeout=90)
+    connected_detected = False
+    
+    def log_filter_cb(msg_text: str, msg_type: str = "info"):
+        nonlocal connected_detected
+        lower = msg_text.lower()
+        if not connected_detected and ("device" in lower or "chip" in lower or "read" in lower or "handshake" in lower or "sync" in lower or "connected" in lower):
+            connected_detected = True
+            log_cb("✓ Đã nhận tín hiệu BROM Mode MediaTek thành công!", "success")
+            log_cb("📦 [BƯỚC 1/4]: Đang rút (Dump) phân vùng Vendor...", "info")
+        log_cb(msg_text, msg_type)
+
+    success_vendor, out_vendor = run_mtk_command(["r", "vendor", dump_vendor_path], log_cb=log_filter_cb, timeout=90)
     if not success_vendor or not os.path.exists(dump_vendor_path):
-        log_cb("❌ Không thể rút phân vùng Vendor từ BROM Mode. Hãy kiểm tra dây cáp và thử lại!", "error")
+        log_cb("❌ Chưa nhận được kết nối BROM hoặc không thể rút Vendor. Hãy kiểm tra lại phím bấm TĂNG + GIẢM ÂM LƯỢNG và cáp USB!", "error")
         return False
         
     log_cb(f"✓ Đã rút thành công Vendor gốc ({os.path.getsize(dump_vendor_path) / (1024*1024):.2f} MB)", "success")
