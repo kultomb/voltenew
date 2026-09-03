@@ -21,7 +21,7 @@ def is_mtkclient_available() -> bool:
 
 def run_mtk_command(cmd_args: list, log_cb=print, timeout: int = 120) -> tuple[bool, str]:
     """
-    Executes an mtkclient command via python launcher.
+    Executes an mtkclient command via python launcher with clean log filtering.
     """
     if not is_mtkclient_available():
         err_msg = f"❌ Không tìm thấy bộ công cụ BROM mtkclient tại: {MTK_CLIENT_PY}"
@@ -31,8 +31,12 @@ def run_mtk_command(cmd_args: list, log_cb=print, timeout: int = 120) -> tuple[b
     python_exe = sys.executable
     full_cmd = [python_exe, MTK_CLIENT_PY] + cmd_args
     
-    log_cb(f"🚀 Đang chạy lệnh MTK BROM: {' '.join(full_cmd)}", "info")
-    
+    # Filter list for spam lines to ignore
+    ignore_keywords = [
+        "hint:", "power off", "for brom mode", "for preloader mode",
+        "if it is already connected", "please reconnect mobile", "metamodes"
+    ]
+
     try:
         process = subprocess.Popen(
             full_cmd,
@@ -54,7 +58,10 @@ def run_mtk_command(cmd_args: list, log_cb=print, timeout: int = 120) -> tuple[b
             if line:
                 cleaned = line.strip()
                 if cleaned:
-                    log_cb(f"  [BROM]: {cleaned}", "info")
+                    lower_line = cleaned.lower()
+                    # Skip verbose spam hint lines
+                    if not any(kw in lower_line for kw in ignore_keywords):
+                        log_cb(f"  ⚡ {cleaned}", "info")
                     output_lines.append(cleaned)
             if time.time() - start_time > timeout:
                 process.kill()
@@ -77,9 +84,7 @@ def run_brom_1click_all_in_one(working_dir: str, patch_engine_func, log_cb=print
     Step 3: Flash patched vendor & vbmeta back to phone
     Step 4: Send reset command to reboot into Android
     """
-    log_cb("==================================================================", "info")
-    log_cb("⚡ BẮT ĐẦU QUY TRÌNH VOLTE BROM 1-CLICK TỰ ĐỘNG (DUMP -> PATCH -> FLASH)", "info")
-    log_cb("==================================================================", "info")
+    log_cb("⚡ BẮT ĐẦU QUY TRÌNH VOLTE BROM 1-CLICK TỰ ĐỘNG", "info")
     
     os.makedirs(working_dir, exist_ok=True)
     
@@ -89,8 +94,7 @@ def run_brom_1click_all_in_one(working_dir: str, patch_engine_func, log_cb=print
     # -------------------------------------------------------------------------
     # STEP 1: DUMP VENDOR & VBMETA FROM BROM
     # -------------------------------------------------------------------------
-    log_cb("📦 [BƯỚC 1/4]: Đang chuẩn bị rút (Dump) phân vùng Vendor & Vbmeta từ BROM...", "info")
-    log_cb("👉 Hãy TẮT NGUỒN máy. Giữ phím GIẢM ÂM LƯỢNG (Volume Down) và CẮM CÁP USB...", "warning")
+    log_cb("📦 [BƯỚC 1/4]: Đang rút (Dump) phân vùng Vendor từ BROM...", "info")
     
     success_vendor, out_vendor = run_mtk_command(["r", "vendor", dump_vendor_path], log_cb=log_cb, timeout=90)
     if not success_vendor or not os.path.exists(dump_vendor_path):

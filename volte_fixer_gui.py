@@ -785,13 +785,8 @@ class VoLTEFixerApp(ctk.CTk):
         self.set_controls_enabled(False)
         self.set_status("Đang đứng chờ kết nối MediaTek BROM Mode...", 0.2)
         
-        self.log("==================================================================", "info")
-        self.log("⚡ QUY TRÌNH VOLTE BROM 1-CLICK TỰ ĐỘNG (DUMP ➔ VÁ ➔ NẠP VENDOR)", "info")
-        self.log("📌 HƯỚNG DẪN THAO TÁC CẮM MÁY BROM:", "warning")
-        self.log("   1. Tắt nguồn điện thoại hoàn toàn.", "warning")
-        self.log("   2. Giữ phím GIẢM ÂM LƯỢNG (hoặc Tăng + Giảm Âm Lượng).", "warning")
-        self.log("   3. Cắm cáp USB nối điện thoại vào máy tính...", "warning")
-        self.log("==================================================================", "info")
+        self.log("⚡ BROM 1-CLICK: Tắt nguồn máy ➔ Giữ GIẢM ÂM LƯỢNG ➔ Cắm cáp USB nối PC", "warning")
+        self.log("👉 Đang đứng chờ phát hiện kết nối MediaTek BROM...", "info")
 
         def _thread():
             try:
