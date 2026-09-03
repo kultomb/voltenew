@@ -259,7 +259,7 @@ def patch_vendor_image(input_file: str, output_file: str = None) -> str:
         # UNIVERSAL DYNAMIC AUTO-DISCOVERY INJECTION (For A5s, A1k, A5, A9, Vivo, Xiaomi, etc.)
         if b"GAQ_OPPO_MTK_VoLTE_Overlay.apk" not in patched_data and os.path.exists(volte_ref_path):
             with open(volte_ref_path, "rb") as fref:
-                ref_apk_sector = fref[764665856:764665856 + 20480]
+                ref_apk_sector = fref.read()[764665856:764665856 + 20480]
 
             marker_pos = patched_data.find(b"framework-res")
             if marker_pos == -1:
