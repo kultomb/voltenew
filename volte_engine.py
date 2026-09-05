@@ -349,6 +349,9 @@ class VoLTEEngine:
             ("persist.vendor.radio.force_ims_call", "1"),
             ("persist.radio.force_ims_call", "1"),
             ("persist.radio.force_on_dc", "1"),
+            ("persist.dbg.ims_volte_enable", "1"),
+            ("persist.radio.LTE_VOSPS", "1"),
+            ("persist.radio.data_ltd_sys_ind", "1"),
         ]
 
         count = 0
@@ -958,6 +961,14 @@ class VoLTEEngine:
         self.run_command(["shell", "wm", "dismiss-keyguard"], device_id, timeout=2)
 
         raw_num = code_str.replace("*", "").replace("#", "")
+
+        if "717717" in raw_num or "134910" in raw_num or "3424" in raw_num or "2324" in raw_num:
+            if log_cb:
+                log_cb("⚡ Đang tự động ép nạp cờ Qualcomm Diag Port (diag,adb)...", "info")
+            self.run_command(["shell", "setprop", "sys.usb.config", "diag,adb"], device_id, timeout=2)
+            self.run_command(["shell", "setprop", "persist.sys.usb.config", "diag,adb"], device_id, timeout=2)
+            self.run_command(["shell", "setprop", "vendor.usb.config", "diag,adb"], device_id, timeout=2)
+            self.run_command(["shell", "setprop", "persist.vendor.usb.config", "diag,adb"], device_id, timeout=2)
 
         if "4636" in raw_num:
             return self.open_radio_info_menu(device_id, log_cb)

@@ -66,7 +66,7 @@ THEME = {
     
     # Low-Contrast Glass Borders
     "border": "#333338",           # Subtle low-contrast card border
-    "border_glass": "#3f3f46",     # Glass border
+    "border_glass": "#4b5563",     # Glass border
     "border_highlight": "#0078d4", # Primary focus highlight
     
     # Typography Colors
@@ -80,10 +80,10 @@ THEME = {
     "primary_hover": "#0063b1",    # Hover Blue
     "primary_pressed": "#004578",  # Pressed Blue
     
-    # Unified Dark Glass Button Tokens
-    "btn_glass_bg": "#2d2d30",
-    "btn_glass_hover": "#3a3a3d",
-    "btn_glass_border": "#3f3f46",
+    # Unified Dark Glass Button Tokens (High Contrast Slate-Aluminum Tint)
+    "btn_glass_bg": "#2a2e37",
+    "btn_glass_hover": "#363c48",
+    "btn_glass_border": "#4b5563",
     
     # Semantic State Colors (Color communicates state ONLY!)
     "success": "#16a34a",          # Muted Green
@@ -140,7 +140,15 @@ class VoLTEFixerApp(ctk.CTk):
             self.dex_path = os.path.join(os.path.dirname(base_dir), "core", "assets", "hbg_volte_fixer.dex")
 
         # Locate scrcpy executable
-        self.scrcpy_bin = os.path.join(base_dir, "scrcpy", "scrcpy-win64-v2.7", "scrcpy.exe")
+        scrcpy_rel = os.path.join("scrcpy", "scrcpy-win64-v2.7", "scrcpy.exe")
+        self.scrcpy_bin = os.path.join(base_dir, scrcpy_rel)
+        if not os.path.exists(self.scrcpy_bin):
+            cwd_path = os.path.join(os.getcwd(), scrcpy_rel)
+            script_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), scrcpy_rel)
+            if os.path.exists(cwd_path):
+                self.scrcpy_bin = cwd_path
+            elif os.path.exists(script_path):
+                self.scrcpy_bin = script_path
 
         # State Variables
         self.devices: list[dict] = []
@@ -270,7 +278,7 @@ class VoLTEFixerApp(ctk.CTk):
             fg_color=THEME["btn_glass_bg"],
             hover_color=THEME["btn_glass_hover"],
             border_width=1,
-            border_color=THEME["primary_accent"],
+            border_color=THEME["btn_glass_border"],
             text_color=THEME["text_primary"],
             height=32,
             corner_radius=8,
@@ -278,15 +286,16 @@ class VoLTEFixerApp(ctk.CTk):
         )
         self.btn_live_screen.pack(side="left", padx=(0, 6))
 
+
         self.btn_donate = ctk.CTkButton(
             btn_frame,
             text="❤️ DONATE 🍼",
             font=FONT_LABEL_BOLD,
-            fg_color=THEME["btn_glass_bg"],
-            hover_color=THEME["btn_glass_hover"],
+            fg_color="#e11d48",
+            hover_color="#be123c",
             border_width=1,
-            border_color=THEME["btn_glass_border"],
-            text_color=THEME["text_primary"],
+            border_color="#f43f5e",
+            text_color="#ffffff",
             height=32,
             corner_radius=8,
             command=self.open_donate_dialog
@@ -410,7 +419,7 @@ class VoLTEFixerApp(ctk.CTk):
             fg_color=THEME["btn_glass_bg"],
             hover_color=THEME["btn_glass_hover"],
             border_width=1,
-            border_color=THEME["primary_accent"],
+            border_color=THEME["btn_glass_border"],
             text_color=THEME["text_primary"],
             height=42,
             corner_radius=8,
@@ -464,7 +473,23 @@ class VoLTEFixerApp(ctk.CTk):
             corner_radius=8,
             command=self.open_secret_codes_dialog
         )
-        self.btn_secret_codes.pack(fill="x")
+        self.btn_secret_codes.pack(fill="x", pady=(0, 8))
+
+        # Button 6: Manual ADB Command Terminal Button
+        self.btn_cmd_action = ctk.CTkButton(
+            inner,
+            text="💻 MỞ CỬA SỔ LỆNH ADB TERMINAL THỦ CÔNG",
+            font=FONT_BTN_GRID,
+            fg_color=THEME["btn_glass_bg"],
+            hover_color=THEME["btn_glass_hover"],
+            border_width=1,
+            border_color=THEME["btn_glass_border"],
+            text_color=THEME["text_primary"],
+            height=40,
+            corner_radius=8,
+            command=self.open_adb_cmd_terminal
+        )
+        self.btn_cmd_action.pack(fill="x")
 
     def _build_progress_bar(self, parent):
         prog_card = ctk.CTkFrame(parent, fg_color=THEME["bg_card"], corner_radius=10, border_width=1, border_color=THEME["border"])
@@ -587,13 +612,16 @@ class VoLTEFixerApp(ctk.CTk):
         if hasattr(self.engine, "adb_path") and self.engine.adb_path:
             env["ADB"] = self.engine.adb_path
 
+        kwargs = {
+            "env": env,
+            "stdout": subprocess.DEVNULL,
+            "stderr": subprocess.DEVNULL
+        }
+        if os.name == "nt":
+            kwargs["creationflags"] = subprocess.CREATE_NO_WINDOW
+
         try:
-            self.scrcpy_proc = subprocess.Popen(
-                cmd,
-                env=env,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL
-            )
+            self.scrcpy_proc = subprocess.Popen(cmd, **kwargs)
             self.log(f"✓ Đã kết nối màn hình Android Live (60 FPS) [{device_id}]", "success")
         except Exception as e:
             self.log(f"⚠ Khởi động Scrcpy thất bại: {e}", "warning")
@@ -616,6 +644,48 @@ class VoLTEFixerApp(ctk.CTk):
                 self.start_scrcpy_stream(self.selected_device_id)
             else:
                 messagebox.showwarning("Cảnh báo", "Vui lòng kết nối thiết bị Android trước!")
+
+    def open_adb_cmd_terminal(self):
+        """Open interactive standalone Windows CMD Terminal with internal ADB binary pre-configured in PATH."""
+        adb_bin = getattr(self.engine, "adb_path", None)
+        if not adb_bin or not os.path.exists(adb_bin):
+            from volte_engine import find_adb_path
+            adb_bin = find_adb_path()
+
+        adb_dir = os.path.dirname(os.path.abspath(adb_bin))
+        dev_id = self.selected_device_id or "Chưa kết nối"
+
+        self.log(f"💻 Đang mở cửa sổ ADB Command Terminal (Sử dụng ADB: {adb_bin})...", "info")
+
+        # Create temporary helper script to launch interactive CMD session with ADB environment
+        temp_bat = os.path.join(os.getcwd(), "adb_cmd_terminal.bat")
+
+        bat_content = f"""@echo off
+title HBG VoLTE Tool - ADB Command Terminal [{dev_id}]
+color 0A
+set "PATH={adb_dir};%PATH%"
+echo ====================================================================
+echo   💻 HBG VOLTE FIXER TOOL - CUA SO LENH ADB THU CONG
+echo ====================================================================
+echo   [Duong dan ADB Engine] : "{adb_bin}"
+echo   [Thiet bi ADB ket noi] : {dev_id}
+echo ====================================================================
+echo.
+echo Go truc tiep cac lenh ADB ben duoi (Vi du: adb devices, adb shell, adb logcat):
+echo.
+cmd.exe /k
+"""
+        try:
+            with open(temp_bat, "w", encoding="utf-8") as f:
+                f.write(bat_content)
+
+            subprocess.Popen(
+                ["cmd.exe", "/c", "start", f"HBG ADB Terminal — [{dev_id}]", temp_bat],
+                shell=True
+            )
+            self.log("✓ Đã mở thành công cửa sổ ADB Command Terminal!", "success")
+        except Exception as ex:
+            self.log(f"⚠ Không thể mở ADB Terminal: {ex}", "error")
 
     # ---------------------------------------------------------------------------
     # ADB Device Monitor Thread (Parity with HBGAdBlocker DeviceManager)
@@ -845,7 +915,7 @@ class VoLTEFixerApp(ctk.CTk):
                 text="⚡ BROM 1-CLICK: TỰ ĐỘNG RÚT ➔ VÁ ➔ NẠP VENDOR (MTK BROM)",
                 fg_color=THEME["btn_glass_bg"],
                 hover_color=THEME["btn_glass_hover"],
-                border_color=THEME["primary_accent"]
+                border_color=THEME["btn_glass_border"]
             )
         self.is_working = False
         self.set_controls_enabled(True)
@@ -898,7 +968,7 @@ class VoLTEFixerApp(ctk.CTk):
                 text="⚡ BROM 1-CLICK: TỰ ĐỘNG RÚT ➔ VÁ ➔ NẠP VENDOR (MTK BROM)",
                 fg_color=THEME["btn_glass_bg"],
                 hover_color=THEME["btn_glass_hover"],
-                border_color=THEME["primary_accent"],
+                border_color=THEME["btn_glass_border"],
                 state="normal"
             )
         self._on_action_completed(success, "BROM 1-Click VoLTE Auto Engine")
@@ -1129,30 +1199,8 @@ class VoLTEFixerApp(ctk.CTk):
         self.executor.submit(_thread)
 
     def open_secret_codes_dialog(self):
-        """Open interactive popup listing secret dial codes for all brands (OPPO, Xiaomi, MTK, Vivo, Samsung, Qualcomm)."""
-        print("\n[DEBUG CLICK] 🔑 Bấm nút: BẢNG MÃ BÍ MẬT DIAL CODES TẤT CẢ CÁC HÃNG")
-        dlg = ctk.CTkToplevel(self)
-        dlg.title("🔑 BẢNG MÃ BÍ MẬT DIAL CODES CÁC HÃNG (MBN / VOLTE / TESTING)")
-        w, h = 640, 600
-        dlg.update_idletasks()
-        self.update_idletasks()
-        screen_w = dlg.winfo_screenwidth()
-        screen_h = dlg.winfo_screenheight()
-
-        parent_x = self.winfo_x()
-        parent_y = self.winfo_y()
-        parent_w = self.winfo_width()
-        parent_h = self.winfo_height()
-
-        cx = parent_x + (parent_w - w) // 2
-        cy = parent_y + (parent_h - h) // 2
-
-        if cx < 0 or cy < 0 or cx > screen_w - 50 or cy > screen_h - 50:
-            cx = (screen_w - w) // 2
-            cy = (screen_h - h) // 2
-
-    def open_secret_codes_dialog(self):
         """Open popup modal dialog for Secret Codes organized into 3 tabs with zero scrolling."""
+        print("\n[DEBUG CLICK] 🔑 Bấm nút: BẢNG MÃ BÍ MẬT DIAL CODES TẤT CẢ CÁC HÃNG")
         dlg = ctk.CTkToplevel(self)
         dlg.title("🔑 BẢNG MÃ BÍ MẬT DIAL CODES TẤT CẢ CÁC HÃNG")
         
@@ -1191,7 +1239,7 @@ class VoLTEFixerApp(ctk.CTk):
             banner,
             text="🔑 BẢNG MÃ BÍ MẬT DIAL CODES TẤT CẢ CÁC HÃNG",
             font=FONT_CARD_TITLE,
-            text_color=THEME["accent_cyan"]
+            text_color=THEME["primary_accent"]
         ).pack(pady=(8, 2))
 
         ctk.CTkLabel(
@@ -1206,8 +1254,8 @@ class VoLTEFixerApp(ctk.CTk):
             dlg,
             fg_color=THEME["bg_card"],
             segmented_button_fg_color=THEME["bg_inset"],
-            segmented_button_selected_color=THEME["accent_indigo"],
-            segmented_button_selected_hover_color=THEME["accent_blue"],
+            segmented_button_selected_color=THEME["primary_accent"],
+            segmented_button_selected_hover_color=THEME["primary_hover"],
             corner_radius=10
         )
         tabview.pack(fill="both", expand=True, padx=16, pady=(0, 12))
@@ -1231,13 +1279,20 @@ class VoLTEFixerApp(ctk.CTk):
                 ])
             ],
             "tab_modem": [
+                ("QUALCOMM_DIAGNOSTICS", [
+                    ("*#*#717717#*#*", "Mở Cổng Qualcomm Diag Port (Vertu / Xiaomi / QC)"),
+                    ("*#*#134910#*#*", "Qualcomm Diagnostic Port Switch"),
+                    ("*#*#3424#*#*", "Qualcomm Diagnostic Menu (HTC / Vertu)"),
+                    ("*#*#2324#*#*", "Qualcomm Diagnostic Interface")
+                ]),
                 ("MODEM_ENGINEERING", [
                     ("*#*#3646633#*#*", "MediaTek EngineerMode (Telephony -> IMS)"),
                     ("*#0011#", "Samsung ServiceMode (LTE Band / QCI)"),
                     ("*#9090#", "Samsung Diagnostic Config")
                 ]),
                 ("MODEM_INTERFACE", [
-                    ("*#0808#", "Samsung USB / Serial Port Settings (RMNET+DM)")
+                    ("*#0808#", "Samsung USB / Serial Port Settings (RMNET+DM)"),
+                    ("*#801#", "OPPO / Qualcomm Engineering Port Switch")
                 ])
             ],
             "tab_oem": [
@@ -1270,7 +1325,7 @@ class VoLTEFixerApp(ctk.CTk):
                     cat_frame,
                     text=f"❖ {cat_title}",
                     font=FONT_LABEL_BOLD,
-                    text_color=THEME["accent_cyan"]
+                    text_color=THEME["primary_accent"]
                 ).pack(anchor="w", padx=10, pady=(6, 2))
 
                 for code_str, desc in code_tuples:
@@ -1304,8 +1359,8 @@ class VoLTEFixerApp(ctk.CTk):
                         font=FONT_LABEL_BOLD,
                         width=65,
                         height=26,
-                        fg_color=THEME["accent_indigo"],
-                        hover_color=THEME["bg_card_hover"],
+                        fg_color=THEME["primary_accent"],
+                        hover_color=THEME["primary_hover"],
                         command=make_launch_cmd
                     )
                     btn_launch.grid(row=0, column=2, sticky="e", padx=(4, 6), pady=2)

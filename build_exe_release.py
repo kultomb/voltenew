@@ -105,6 +105,7 @@ def main():
         "--windowed",
         "--name=HBG_VoLTE_Fixer_Tool_v2.0",
         f"--add-data={os.path.join(project_dir, 'assets')};assets",
+        f"--add-data={os.path.join(project_dir, 'scrcpy')};scrcpy",
         f"--add-data={os.path.join(project_dir, 'tools')};tools",
         f"--add-data={os.path.join(project_dir, 'vendor_patcher')};vendor_patcher",
     ]

@@ -23,3 +23,5 @@ scratch/test_unpack_clean/
 extracted_vendor_volte/*.img
 extracted_vendor_volte/*.mp4
 extracted_vendor_volte/unpacked_vendor_files/
+*.obj
+scratch/*.log
